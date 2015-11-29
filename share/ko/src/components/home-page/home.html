@@ -1,0 +1,31 @@
+<canvas id="game-area"></canvas>
+<%= buttongroup id => 'settings', buttons => [
+        ['Pause', ['#'], data => { bind => 'click: pausePong'} ]
+    ]
+%>
+<div id="debug">
+    %= table condensed, striped, begin
+        <tbody>
+            <tr>
+                <td>Speed</td>
+                <td id="speed"></td>
+            </tr>
+            <tr>
+                <td>Bearing</td>
+                <td id="bearing"></td>
+            </tr>
+            <tr>
+                <td>LeftRightEdge</td>
+                <td id="left-paddle"></td>
+            </tr>
+            <tr>
+                <td>Ball X</td>
+                <td id="ball-x"></td>
+            </tr>
+            <tr>
+                <td>Ball Y</td>
+                <td id="ball-y"></td>
+            </tr>
+        </tbody>
+    % end
+</div>
