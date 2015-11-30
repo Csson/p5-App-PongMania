@@ -14,14 +14,14 @@ html,
 #page {
     height: 100%;
 }
-#game-area {
+canvas.full {
     position: absolute;
     height: 100%;
     width: 100%;
     background-color: #444;
 }
 
-#settings {
+#pong-settings {
     position: absolute;
     top: 20px;
     left: 50%;
@@ -29,11 +29,56 @@ html,
     margin-left: -34px;
 }
 
-#debug {
+#pong-debug {
     background-color: #555;
     color: #999;
     position: absolute;
     bottom: 20px;
     left: 222px;
     width: 200px;
+}
+
+#pong-player-data > div {
+    position: absolute;
+    top: 50px;
+    color: rgb(255, 255, 255, 0.3);
+}
+#pong-player-data > div > h2,
+#pong-bounces > div > h2 {
+    font-size: 40px;
+}
+#pong-player-data > div > p,
+#pong-bounces > div > p {
+    font-size: 120px;
+}
+#pong-player-data > div:nth-child(1) {
+    left: 20%;
+}
+#pong-player-data > div:nth-child(2) {
+    right: 20%;
+}
+#pong-bounces {
+    position: absolute;
+    bottom: 20px;
+    color: rgb(255, 255, 255, 0.3);
+    width: 200px;
+    left: 50%;
+    right: 50%;
+    margin-left: -100px;
+}
+#pong-game-over {
+    position: absolute;
+    font-size: 60px;
+    color: #555;
+    background-color: #fdd;
+    border: 3px solid #222;
+    padding: 20px 50px;
+    top: 30%;
+    width: 500px;
+    left: 50%;
+    right: 50%;
+    margin-left: -250px;
+}
+#pong-game-over small {
+    font-size: 12px;
 }

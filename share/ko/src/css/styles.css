@@ -7,7 +7,7 @@ html,
 #page {
     height: 100%;
 }
-#pong-page canvas {
+canvas.full {
     position: absolute;
     height: 100%;
     width: 100%;

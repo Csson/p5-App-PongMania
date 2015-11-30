@@ -15,6 +15,8 @@ ko.components.register('about-page', {
 
 ko.components.register('pong', { require: 'components/pong/pong' });
 
+ko.components.register('tetris', { require: 'components/tetris/tetris' });
+
 // [Scaffolded component registrations will be inserted here. To retain this feature, don't remove this comment.]
 
 // Start the application
