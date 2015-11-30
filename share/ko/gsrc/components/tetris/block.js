@@ -8,8 +8,9 @@ export class TetrisBlock {
         this.color = params.color || this.colorDefault();
         this.unitSize = params.unitSize;
         this.ctx = params.ctx;
-        this.relativeTopX = params.topX || 10;
+        this.relativeTopX = params.topX || 0;
         this.relativeTopY = params.topY || 30;
+        this.fills = this.getFillForTypeRotation();
 
         this.bounding = {
             xUnits: this.type === 'I' || this.type === 'O' ? 4 : 3,
@@ -37,6 +38,13 @@ export class TetrisBlock {
         else {
             this.rotation = this.rotation + direction;
         }
+        this.fills = this.getFillForTypeRotation();
+    }
+    moveLeft() {
+        this.relativeTopX = this.relativeTopX - this.unitSize;
+    }
+    moveRight() {
+        this.relativeTopX = this.relativeTopX + this.unitSize;
     }
     topX() {
         return this.relativeTopX + this.area.left;
@@ -46,13 +54,8 @@ export class TetrisBlock {
     }
 
     draw() {
-        var fills = this.getFillForTypeRotation();
-
         for (var rowIndex = 0; rowIndex <= 3; rowIndex++) {
-            console.log(rowIndex);
-            console.log(this);
-            console.log(fills);
-            var cells = fills[rowIndex].split('');
+            var cells = this.fills[rowIndex].split('');
             for (var cellIndex = 0; cellIndex <= 3; cellIndex++) {
                 if(cells[cellIndex] === '#') {
                     this.ctx.fillStyle = this.color;

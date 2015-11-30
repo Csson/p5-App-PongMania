@@ -21,10 +21,21 @@ export class TetrisRound {
              ;
     }
 
+    activeBlockRotate() {
+        this.blocks[this.blocksDone()].rotate(1);
+    }
+    activeBlockMoveLeft() {
+        this.blocks[this.blocksDone()].moveLeft();
+    }
+    activeBlockMoveRight() {
+        this.blocks[this.blocksDone()].moveRight();
+    }
+
+
     draw() {
         for (var i = 0; i < this.blocks.length; i++) {
             this.blocks[i].draw();
-            this.blocks[i].rotate(Math.random() > 0.5 ? 1 : -1);
+           // this.blocks[i].rotate(Math.random() > 0.5 ? 1 : -1);
         }
     }
 

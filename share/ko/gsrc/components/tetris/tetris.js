@@ -13,7 +13,7 @@ class Tetris {
         this.canvasHeight = $gameArea.height();
         this.ctx = $gameArea[0].getContext('2d');
 
-        this.unitSize = 8;
+        this.unitSize = 14;
         this.meta = {
             horizontalBlocks: 10,
             verticalBlocks: 20,
@@ -34,6 +34,23 @@ class Tetris {
             ctx: this.ctx,
             area: this.area,
         });
+
+        $(document).keydown((e) => {
+            console.log('down key ' + e.which);
+            if(e.which === 38) {
+                this.round.activeBlockRotate();
+            }
+            else if(e.which === 37) {
+                this.round.activeBlockMoveLeft();
+            }
+            else if(e.which === 39) {
+                this.round.activeBlockMoveRight();
+            }
+            else if(e.which === 40) {
+                this.round.activeBlockDrop();
+            }
+        });
+
         this.run();
         
     }
