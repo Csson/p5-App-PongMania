@@ -8,14 +8,10 @@ export class TetrisBlock {
         this.color = params.color || this.colorDefault();
         this.unitSize = params.unitSize;
         this.ctx = params.ctx;
-        this.relativeTopX = params.topX || 0;
-        this.relativeTopY = params.topY || 30;
-        this.fills = this.getFillForTypeRotation();
+        this.relativeTopX = params.topX || this.unitSize * Math.floor((this.area.horizontalBlocks - 2) / 2);
+        this.relativeTopY = params.topY || 0;
+        this.fills = this.getFillForTypeRotation(this.type, this.rotation);
 
-        this.bounding = {
-            xUnits: this.type === 'I' || this.type === 'O' ? 4 : 3,
-            yUnits: this.type === 'I' ? 4 : 3,
-        }
     }
     colorDefault() {
         return this.type === 'I' ? '#00ffff'
@@ -28,23 +24,232 @@ export class TetrisBlock {
              :                     '#fff'
              ;
     }
-    rotate(direction) {
-        if(this.rotation + direction > 3) {
-            this.rotation = 0;
+    actualLeftX(fills) {
+        var fillsToCheck = fills || this.fills;
+        var minFilledX = 3;
+        for (var row = 0; row < fillsToCheck.length; row++) {
+            var cells = fillsToCheck[row].split('');
+            for (var column = 0; column <= 3; column++) {
+                if(cells[column] === '#' && column < minFilledX) {
+                    minFilledX = column;
+                }
+            }
         }
-        else if(this.rotation + direction < 0) {
-            this.rotation = 3;
+        return this.relativeTopX + minFilledX * this.unitSize;
+    }
+    actualRightX(fills) {
+        var fillsToCheck = fills || this.fills;
+        var maxFilledX = 0;
+        for (var row = 0; row < fillsToCheck.length; row++) {
+            var cells = fillsToCheck[row].split('');
+            for (var column = 0; column <= 3; column++) {
+                if(cells[column] === '#' && column > maxFilledX) {
+                    maxFilledX = column;
+                }
+            }
+        }
+        return this.relativeTopX + (1 + maxFilledX) * this.unitSize;
+    }
+    doRotate(newRotation) {
+        this.rotation = newRotation;
+        this.fills = this.getFillForTypeRotation(this.type, newRotation);
+
+//        var canWallKick = true;
+//        if(this.actualLeftX(fills) < 0) {
+//            if(!this.moveRight(occupiedByOthers)) {
+//                canWallKick = false;
+//            }
+//        }
+//        else if(this.actualRightX(fills) > this.area.horizontalBlocks * this.unitSize) {
+//            if(!this.moveLeft(occupiedByOthers)) {
+//                canWallKick = false;
+//            }
+//        }
+//        if(canWallKick) {
+//            this.rotation = newRotation;
+//            this.fills = this.getFillForTypeRotation(this.type, this.rotation);
+//        }
+    }
+    rotate(occupiedByOthers) {
+        var nextRotation;
+        if(this.rotation + 1 > 3) {
+            nextRotation = 0;
+        }
+        else if(this.rotation + 1 < 0) {
+            nextRotation = 3;
         }
         else {
-            this.rotation = this.rotation + direction;
+            nextRotation = this.rotation + 1;
         }
-        this.fills = this.getFillForTypeRotation();
+
+        var simBlock = new TetrisBlock(Object.assign({}, this));
+        simBlock.relativeTopX = this.relativeTopX;
+        simBlock.relativeTopY = this.relativeTopY;
+        simBlock.doRotate(nextRotation);
+
+        var rotatedOk = true;
+        var shouldMoveRight = false;
+        var shouldMoveLeft = false;
+
+        // Can we wall kick to the right?
+        if(simBlock.actualLeftX() < 0) {
+            console.log('shouldmoveright');
+            shouldMoveRight = true;
+            
+            if(!simBlock.moveRight(occupiedByOthers)) {
+                rotatedOk = false;
+            }
+        }
+        // wall kick to the left?
+        else if(simBlock.actualRightX() > simBlock.area.horizontalBlocks * simBlock.unitSize) {
+            shouldMoveLeft = true;
+
+            if(!simBlock.moveLeft(occupiedByOthers)) {
+                rotatedOk = false;
+            }
+        }
+        // If we overlap another block, try moving left/right
+        else if(!simBlock.checkMovability(simBlock.occupiedSquares(), occupiedByOthers)) {
+            if(simBlock.actualLeftX() > simBlock.unitSize) {
+                shouldMoveRight = true;
+
+                if(!simBlock.moveRight(occupiedByOthers)) {
+                    rotatedOk = false;
+                }
+            }
+            else if(simBlock.actualRightX() < simBlock.area.horizontalBlocks * simBlock.unitSize - simBlock.unitSize) {
+                shouldMoveLeft = true;
+
+                if(!simBlock.moveLeft(occupiedByOthers)) {
+                    rotatedOk = false;
+                }
+            }
+            else {
+                rotatedOk = false;
+            }
+        }
+
+        if(rotatedOk) {
+            if(shouldMoveRight) {
+                this.moveRight(occupiedByOthers);
+            }
+            else if(shouldMoveLeft) {
+                this.moveLeft(occupiedByOthers);
+            }
+            this.doRotate(nextRotation);
+        }
+
+        /*nextFills = this.getFillForTypeRotation(this.type, nextRotation);
+        var canRotate = true;
+
+        if(canRotate) {
+            this.doRotate(nextRotation);
+        }*/
     }
-    moveLeft() {
-        this.relativeTopX = this.relativeTopX - this.unitSize;
+    moveLeft(occupiedByOthers) {
+        if(this.actualLeftX() == 0) {
+            return;
+        }
+        
+        var newRelativeTopX = this.relativeTopX - this.unitSize;
+        var newOccupiedSquares = this.occupiedSquares(newRelativeTopX, this.RelativeTopY);
+
+        var canMove = this.checkMovability(newOccupiedSquares, occupiedByOthers);
+
+        if(canMove) {
+            this.relativeTopX = newRelativeTopX;
+            return true;
+        }
+        else {
+            return false;
+        }
     }
-    moveRight() {
-        this.relativeTopX = this.relativeTopX + this.unitSize;
+    moveRight(occupiedByOthers) {
+        if(this.actualRightX() == this.area.horizontalBlocks * this.unitSize) {
+            return;
+        }
+
+        var newRelativeTopX = this.relativeTopX + this.unitSize;
+        var newOccupiedSquares = this.occupiedSquares(newRelativeTopX, this.RelativeTopY);
+
+        var canMove = this.checkMovability(newOccupiedSquares, occupiedByOthers);
+
+        if(canMove) {
+            this.relativeTopX = newRelativeTopX;
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    moveDown(occupiedByOthers) {
+        if(this.relativeTopY + this.blockHeight() === this.area.verticalBlocks * this.unitSize) {
+            return false;
+        }
+
+        var newRelativeTopY = this.relativeTopY + this.unitSize;
+        var newOccupiedSquares = this.occupiedSquares(this.relativeTopX, newRelativeTopY);
+
+        var canMove = this.checkMovability(newOccupiedSquares, occupiedByOthers);
+
+        if(canMove) {
+            this.relativeTopY = newRelativeTopY;
+            return true;
+        }
+        else {
+            return false;
+        }
+
+    }
+    drop(occupiedByOthers) {
+        var newRelativeTopY = this.area.verticalBlocks * this.unitSize - this.marginBottom();
+
+        while(this.moveDown(occupiedByOthers)) {}
+    }
+    checkMovability(newOccupiedSquares, occupiedByOthers) {
+        var canMove = true;
+
+        SEARCHING:
+        for (var i = 0; i < newOccupiedSquares.length; i++) {
+            var newOccupied = newOccupiedSquares[i]; // this block's would-be occupied squares
+
+            for (var j = 0; j < occupiedByOthers.length; j++) {
+                var occupiedByAnotherBlock = occupiedByOthers[j];
+
+                for (var k = 0; k < occupiedByAnotherBlock.length; k++) {
+                    var oneOccupiedSquare = occupiedByAnotherBlock[k];
+
+                    if(newOccupied.x === oneOccupiedSquare.x && newOccupied.y === oneOccupiedSquare.y) {
+                        canMove = false;
+                        break SEARCHING;
+                    }
+                }
+            }
+        }
+        return canMove;
+        
+    }
+    blockHeight() {
+        var maxFilledY = this.maxFilledY();
+        return (1 + maxFilledY) * this.unitSize;
+    }
+    marginBottom(fills) {
+        var maxFilledY = this.maxFilledY(fills);
+        console.log('marginbottom: ' + (1 + maxFilledY) * this.unitSize);
+        return (1 + maxFilledY) * this.unitSize;
+    }
+    maxFilledY(fills) {
+        var fillsToCheck = fills || this.fills;
+        var maxFilledY = 0;
+        for (var row = 0; row < fillsToCheck.length; row++) {
+            var cells = fillsToCheck[row].split('');
+            for (var column = 0; column <= 3; column++) {
+                if(cells[column] === '#' && row > maxFilledY) {
+                    maxFilledY = row;
+                }
+            }
+        }
+        return maxFilledY;
     }
     topX() {
         return this.relativeTopX + this.area.left;
@@ -63,13 +268,28 @@ export class TetrisBlock {
                 }
             }
         }
+    }
+    occupiedSquares(relativeTopX, relativeTopY) {
+        var localRelativeTopX = relativeTopX || this.relativeTopX;
+        var localRelativeTopY = relativeTopY || this.relativeTopY;
+        var xOrigin = localRelativeTopX / this.unitSize;
+        var yOrigin = localRelativeTopY / this.unitSize;
 
+        var occupiedSquares = [];
 
+        for (var rowIndex = 0; rowIndex < this.fills.length; rowIndex++) {
+            var cells = this.fills[rowIndex].split('');
+            for (var cellIndex = 0; cellIndex <= 3; cellIndex++) {
+                if(cells[cellIndex] === '#') {
+                    occupiedSquares.push({ x: xOrigin + cellIndex, y: yOrigin + rowIndex });
+                }
+            }
+        }
+        return occupiedSquares;
     }
 
-    getFillForTypeRotation() {
+    getFillForTypeRotation(type, rotation) {
         var typeRotations = {
-
             I: [
                 [
                     '_#__',
@@ -253,8 +473,9 @@ export class TetrisBlock {
                 ],
             ],
         };
-        return typeRotations[this.type][this.rotation];
+        return typeRotations[type][rotation];
     }
+
 }
 /*
 */

@@ -14,17 +14,18 @@ class Tetris {
         this.ctx = $gameArea[0].getContext('2d');
 
         this.unitSize = 14;
-        this.meta = {
-            horizontalBlocks: 10,
-            verticalBlocks: 20,
-        };
+
+        var horizontalBlocks = 10;
+        var verticalBlocks = 20;
         this.area = {
-            left: this.canvasWidth / 2 - this.unitSize * this.meta.horizontalBlocks / 2,
-            top: this.canvasHeight / 2 - this.unitSize * this.meta.verticalBlocks / 2,
-            right: this.canvasWidth / 2 + this.unitSize * this.meta.horizontalBlocks,
-            bottom: this.canvasHeight / 2 + this.unitSize * this.meta.verticalBlocks,
-            width: this.unitSize * this.meta.horizontalBlocks,
-            height: this.unitSize * this.meta.verticalBlocks,
+            left: this.canvasWidth / 2 - this.unitSize * horizontalBlocks / 2,
+            top: this.canvasHeight / 2 - this.unitSize * verticalBlocks / 2,
+            right: this.canvasWidth / 2 + this.unitSize * horizontalBlocks,
+            bottom: this.canvasHeight / 2 + this.unitSize * verticalBlocks,
+            width: this.unitSize * horizontalBlocks,
+            height: this.unitSize * verticalBlocks,
+            horizontalBlocks: horizontalBlocks,
+            verticalBlocks: verticalBlocks,
         };
         console.log(this);
 
@@ -58,7 +59,20 @@ class Tetris {
     draw() {
         this.ctx.clearRect(0, 0, this.width, this.height);
         this.ctx.fillStyle = '#777';
+        // game area
         this.ctx.fillRect(this.area.left, this.area.top, this.area.width, this.area.height);
+
+        // grid
+        var c = this.ctx;
+        for (var x = 1; x < this.area.horizontalBlocks; x++) {
+            c.beginPath();
+            c.moveTo(x * this.unitSize + this.area.left, this.area.top);
+            c.lineTo(x * this.unitSize + this.area.left, this.area.top  + this.area.height);
+            c.strokeStyle = '#888';
+            c.stroke();
+            //for (var y = 0; y < this.area.verticalBlocks; y++) {
+            //}
+        }
 
     }
 

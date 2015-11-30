@@ -10,7 +10,10 @@ export class TetrisRound {
         this.blocksLeft = ko.observable(this.blockCountForLevel(this.level()));
         this.blocksDone = ko.observable(0);
         this.blocks = this.randomizeBlocks(this.blocksLeft());
-
+        this.activeBlock().relativeTopY = 0;
+        this.loopsPerStep = this.loopsPerStepForLevel(this.level());
+        this.loopsSinceStep = 0;
+        this.occupiedExceptActive = [];
         console.log(this);
     }
     blockCountForLevel(level) {
@@ -20,22 +23,71 @@ export class TetrisRound {
              :              1
              ;
     }
+    loopsPerStepForLevel(level) {
+        return level == 1 ? 10
+             : level == 2 ? 8
+             : level == 3 ? 6
+             :              1000
+             ;
+    }
+    activeBlock() {
+        return this.blocks[this.blocksDone()];
+    }
+    doneWithBlock() {
+        this.blocksDone(this.blocksDone() + 1);
+    }
 
     activeBlockRotate() {
-        this.blocks[this.blocksDone()].rotate(1);
+        this.activeBlock().rotate(this.occupiedExceptActive);
     }
     activeBlockMoveLeft() {
-        this.blocks[this.blocksDone()].moveLeft();
+        this.activeBlock().moveLeft(this.occupiedExceptActive);
     }
     activeBlockMoveRight() {
-        this.blocks[this.blocksDone()].moveRight();
+        this.activeBlock().moveRight(this.occupiedExceptActive);
+    }
+    activeBlockDrop() {
+        this.activeBlock().drop(this.occupiedExceptActive);
+        this.doneWithBlock();
+        this.activeBlock().relativeTopY = 0;
     }
 
 
     draw() {
+
+        var allOccupiedSquares = [];
+        
+        OCCUPIED:
         for (var i = 0; i < this.blocks.length; i++) {
-            this.blocks[i].draw();
-           // this.blocks[i].rotate(Math.random() > 0.5 ? 1 : -1);
+            if(this.blocks[i] === this.activeBlock()) {
+                continue OCCUPIED;
+            }
+            // Will probably never happen
+            else if(i >= this.blocksDone()) {
+                break OCCUPIED;
+            }
+            else if(this.blocks[i].relativeTopY >= 0) {
+                allOccupiedSquares.push(this.blocks[i].occupiedSquares());
+            }
+        }
+        this.occupiedExceptActive = allOccupiedSquares;
+
+        ++this.loopsSinceStep;
+        if(this.loopsSinceStep > this.loopsPerStep) {
+            this.loopsSinceStep = 0;
+
+            var ableToMove = this.activeBlock().moveDown(this.occupiedExceptActive);
+            if(!ableToMove) {
+                this.doneWithBlock();
+            }
+        }
+        for (var i = 0; i < this.blocks.length; i++) {
+            if(i > this.blocksDone()) {
+                continue;
+            }
+            if(this.blocks[i].relativeTopY >= 0) {
+                this.blocks[i].draw();
+            }
         }
     }
 
@@ -48,7 +100,7 @@ export class TetrisRound {
                 type: blockTypes[ Math.floor(Math.random() * blockTypes.length) ],
                 rotation: rotation[ Math.floor(Math.random() * rotation.length) ],
                 unitSize: this.unitSize,
-                topY: 1 + (i - 1) * this.unitSize * 4,
+                topY: -4 * this.unitSize,
                 ctx: this.ctx,
                 area: this.area,
             }));
