@@ -1,0 +1,23 @@
+<div id="pong-page">
+    <canvas></canvas>
+    <%= buttongroup id => 'pong-settings', buttons => [
+            ['Pause', ['#'], data => { bind => 'click: pausePong'} ]
+        ]
+    %>
+    <div id="pong-player-data" data-bind="foreach: paddles">
+        <div>
+            <h2 class="text-center" data-bind="text: name()"></h2>
+            <p class="text-center" data-bind="text: score()"></p>
+        </div>
+    </div>
+    <div id="pong-bounces">
+        <div>
+            <h2 class="text-center">Bounces</h2>
+            <p class="text-center" data-bind="text: bounces"></p>
+        </div>
+    </div>
+    <div id="pong-game-over" data-bind="visible: waitingForNewGame()">
+        <p class="text-center"><span data-bind="text: winnerName()"></span> won!</p>
+        <p class="text-center"><small>Press any key (or tap) to play again</small></p>
+    </div>
+</div>
