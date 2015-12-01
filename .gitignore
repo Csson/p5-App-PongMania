@@ -5,3 +5,10 @@
 MYMETA.*
 !META.json
 /.prove
+
+share/ko/node_modules/
+share/ko/*/bower_modules/
+
+# Don't track build output
+share/ko/dist/
+share/ko/gsrc/
