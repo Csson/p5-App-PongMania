@@ -9,7 +9,7 @@ export class TetrisBlock {
         this.unitSize = params.unitSize;
         this.ctx = params.ctx;
         this.relativeTopX = params.topX || this.unitSize * Math.floor((this.area.horizontalBlocks - 2) / 2);
-        this.relativeTopY = params.topY || 0;
+        this.relativeTopY = params.topY || -4 * this.unitSize;
         this.fills = this.getFillForTypeRotation(this.type, this.rotation);
 
     }
@@ -180,8 +180,9 @@ export class TetrisBlock {
     }
     drop(occupiedByOthers) {
         var newRelativeTopY = this.area.verticalBlocks * this.unitSize - this.marginBottom();
-
-        while(this.moveDown(occupiedByOthers)) {}
+        var wasDropped = false;
+        while(this.moveDown(occupiedByOthers)) { wasDropped = true }
+        return wasDropped;
     }
     checkMovability(newOccupiedSquares, occupiedByOthers) {
         var canMove = true;
@@ -239,7 +240,8 @@ export class TetrisBlock {
         for (var rowIndex = 0; rowIndex <= 3; rowIndex++) {
             var cells = this.fills[rowIndex].split('');
             for (var cellIndex = 0; cellIndex <= 3; cellIndex++) {
-                if(cells[cellIndex] === '#') {
+
+                if(cells[cellIndex] === '#' && this.relativeTopY + rowIndex * this.unitSize >= 0) {
                     this.ctx.fillStyle = this.color;
                     this.ctx.fillRect(this.topX() + cellIndex * this.unitSize, this.topY() + rowIndex * this.unitSize, this.unitSize, this.unitSize);
                 }
@@ -257,12 +259,33 @@ export class TetrisBlock {
         for (var rowIndex = 0; rowIndex < this.fills.length; rowIndex++) {
             var cells = this.fills[rowIndex].split('');
             for (var cellIndex = 0; cellIndex <= 3; cellIndex++) {
-                if(cells[cellIndex] === '#') {
+                if(cells[cellIndex] === '#' && this.relativeTopY + rowIndex * this.unitSize >= 0) {
                     occupiedSquares.push({ x: xOrigin + cellIndex, y: yOrigin + rowIndex });
                 }
             }
         }
         return occupiedSquares;
+    }
+    removeFromRow(row) {
+        var occupiedSquares = this.occupiedSquares();
+        var yOrigin = this.relativeTopY / this.unitSize;
+        var fillOffset = row - yOrigin;
+        this.fills[fillOffset] = '----';
+
+        var movedFills = true;
+        while(movedFills) {
+            movedFills = false;
+
+            for (var i = 0; i < this.fills.length - 1; i++) {
+                var rowFill = this.fills[i];
+                var nextFill = this.fills[i + 1];
+                if(rowFill === '----' && nextFill !== '----') {
+                    movedFills = true;
+                    this.fills[i] = nextFill;
+                    this.fills[i + 1] = rowFill;
+                }
+            }
+        }
     }
 
     getFillForTypeRotation(type, rotation) {

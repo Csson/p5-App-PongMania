@@ -10,11 +10,12 @@ export class TetrisRound {
         this.blocksLeft = ko.observable(this.blockCountForLevel(this.level()));
         this.blocksDone = ko.observable(0);
         this.blocks = this.randomizeBlocks(this.blocksLeft());
-        this.activeBlock().relativeTopY = 0;
+  //      this.activeBlock().relativeTopY = 0;
         this.loopsPerStep = this.loopsPerStepForLevel(this.level());
         this.loopsSinceStep = 0;
         this.occupiedExceptActive = [];
         this.roundScore = ko.observable(0);
+        this.hadCompletedRowsOnLastUpdate = 0;
         console.log(this);
     }
     blockCountForLevel(level) {
@@ -34,10 +35,14 @@ export class TetrisRound {
     activeBlock() {
         return this.blocks[this.blocksDone()];
     }
+    isRoundCompleted() {
+        return this.blocksDone() === this.blocksLeft();
+    }
     increaseScoreWith(scoreIncrease) {
         this.roundScore(this.roundScore() + scoreIncrease);
     }
     doneWithBlock(wasDropped) {
+        //this.activeBlock().relativeTopY = 0;
         this.blocksDone(this.blocksDone() + 1);
         this.increaseScoreWith(3 * this.level() + (wasDropped ? 21 : 3));
     }
@@ -64,20 +69,14 @@ export class TetrisRound {
     activeBlockDrop() {
         this.activeBlock().drop(this.occupiedExceptActive);
         this.doneWithBlock(1);
-        this.activeBlock().relativeTopY = 0;
     }
 
     updateSquaresOccupiedByDroppedBlocks() {
         var allOccupiedSquares = [];
         
         OCCUPIED:
-        for (var i = 0; i < this.blocks.length; i++) {
-            if(this.blocks[i] === this.activeBlock()) {
-                break OCCUPIED;
-            }
-            else if(this.blocks[i].relativeTopY >= 0) {
-                allOccupiedSquares.push(this.blocks[i].occupiedSquares());
-            }
+        for (var i = 0; i < this.blocksDone(); i++) {
+            allOccupiedSquares.push(this.blocks[i].occupiedSquares());
         }
         this.occupiedExceptActive = allOccupiedSquares;
     }
@@ -103,7 +102,7 @@ export class TetrisRound {
 
                 for (var squareIndex = 0; squareIndex < block.length; squareIndex++) {
                     var square = block[squareIndex];
-                 //   console.log(square.y, row);
+
                     if(square.y == row) {
                         completedCells = completedCells + 1;
                     }
@@ -113,14 +112,23 @@ export class TetrisRound {
                 completedRows.push(row);
             }
         }
-        this.giveScoreForClearedRows(completedRows.length);
+
+        if(completedRows.length > 0) {
+            this.giveScoreForClearedRows(completedRows.length);
+            this.handleCompletedRows(completedRows);
+        }
+        return completedRows.length > 0 ? true : false;
 
     }
 
     update() {
-        this.updateSquaresOccupiedByDroppedBlocks();
-        this.maybeTakeStep();
-        this.checkForCompletedRows();
+        if(!this.hadCompletedRowsOnLastUpdate) {
+            this.updateSquaresOccupiedByDroppedBlocks();
+            this.maybeTakeStep();
+            this.draw();
+            this.hadCompletedRowsOnLastUpdate = false;
+        }
+        var hadCompletedRows = this.checkForCompletedRows();
 
     }
     draw() {
@@ -128,10 +136,51 @@ export class TetrisRound {
             if(i > this.blocksDone()) {
                 continue;
             }
-            if(this.blocks[i].relativeTopY >= 0) {
-                this.blocks[i].draw();
-            }
+            this.blocks[i].draw();
         }
+    }
+    handleCompletedRows(completedRows) {
+        for (var rowIndex = 0; rowIndex < completedRows.length; rowIndex++) {
+            var row = completedRows[rowIndex];
+            this.ctx.fillStyle = '#fff';
+            for (var cellIndex = 0; cellIndex < this.area.horizontalBlocks; cellIndex++) {
+                this.ctx.fillRect(
+                    this.area.left + cellIndex * this.unitSize,
+                    this.area.top + row * this.unitSize,
+                    this.unitSize,
+                    this.unitSize
+                );
+            }
+            for (var blockIndex = 0; blockIndex < this.blocksDone(); blockIndex++) {
+                var block = this.blocks[blockIndex];
+                block.removeFromRow(row);
+            }
+
+        }
+
+        var aBlockCouldDrop = true;
+        while(aBlockCouldDrop) {
+            aBlockCouldDrop = false;
+
+            for (var blockIndex = 0; blockIndex < this.blocksDone(); blockIndex++) {
+                var occupiedExceptThis = this.allOccupiedSquaresExpectBlockIndex(blockIndex);
+                var block = this.blocks[blockIndex];
+                aBlockCouldDrop = block.drop(occupiedExceptThis);
+            }
+            console.log(aBlockCouldDrop);
+        }
+    }
+    allOccupiedSquaresExpectBlockIndex(excpetBlockIndex) {
+        var allOccupiedSquares = [];
+
+        OCCUPIED:
+        for (var i = 0; i < this.blocksDone(); i++) {
+            if(i === excpetBlockIndex) {
+                continue OCCUPIED;
+            }
+            allOccupiedSquares.push(this.blocks[i].occupiedSquares());
+        }
+        return allOccupiedSquares;
     }
 
     randomizeBlocks(amount) {

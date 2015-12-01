@@ -13,7 +13,7 @@ class Tetris {
         this.canvasHeight = $gameArea.height();
         this.ctx = $gameArea[0].getContext('2d');
 
-        this.unitSize = 14;
+        this.unitSize = 20;
 
         var horizontalBlocks = 10;
         var verticalBlocks = 20;
@@ -81,7 +81,10 @@ class Tetris {
     run() {
         this.draw();
         this.round.update();
-        this.round.draw();
+
+        if(this.round.isRoundCompleted()) {
+            console.log('Done!');
+        }
         var self = this;
         setTimeout(function() { self.run() }, 25);
     }
