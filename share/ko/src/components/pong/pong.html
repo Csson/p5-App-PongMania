@@ -2,7 +2,6 @@
     <canvas class="full"></canvas>
     <%= buttongroup id => 'pong-settings', buttons => [
             ['Pause', ['#'], data => { bind => 'click: pausePong'} ],
-            ['Pause', ['#'], '!bind' => 'click: pausePong']
         ]
     %>
     <div id="pong-player-data" data-bind="foreach: paddles">

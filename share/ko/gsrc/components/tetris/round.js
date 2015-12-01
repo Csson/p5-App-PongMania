@@ -14,12 +14,13 @@ export class TetrisRound {
         this.loopsPerStep = this.loopsPerStepForLevel(this.level());
         this.loopsSinceStep = 0;
         this.occupiedExceptActive = [];
+        this.roundScore = ko.observable(0);
         console.log(this);
     }
     blockCountForLevel(level) {
-        return level == 1 ? 10
-             : level == 2 ? 12
-             : level == 3 ? 15
+        return level == 1 ? 20
+             : level == 2 ? 25
+             : level == 3 ? 30
              :              1
              ;
     }
@@ -33,8 +34,22 @@ export class TetrisRound {
     activeBlock() {
         return this.blocks[this.blocksDone()];
     }
-    doneWithBlock() {
+    increaseScoreWith(scoreIncrease) {
+        this.roundScore(this.roundScore() + scoreIncrease);
+    }
+    doneWithBlock(wasDropped) {
         this.blocksDone(this.blocksDone() + 1);
+        this.increaseScoreWith(3 * this.level() + (wasDropped ? 21 : 3));
+    }
+    giveScoreForClearedRows(numberOfRows) {
+        var groundScoreForNumberOfRows = {
+            0:    0,
+            1:   40,
+            2:  100,
+            3:  300,
+            4: 1200,
+        };
+        this.roundScore(this.roundScore() + groundScoreForNumberOfRows[numberOfRows] * this.level());
     }
 
     activeBlockRotate() {
@@ -48,22 +63,16 @@ export class TetrisRound {
     }
     activeBlockDrop() {
         this.activeBlock().drop(this.occupiedExceptActive);
-        this.doneWithBlock();
+        this.doneWithBlock(1);
         this.activeBlock().relativeTopY = 0;
     }
 
-
-    draw() {
-
+    updateSquaresOccupiedByDroppedBlocks() {
         var allOccupiedSquares = [];
         
         OCCUPIED:
         for (var i = 0; i < this.blocks.length; i++) {
             if(this.blocks[i] === this.activeBlock()) {
-                continue OCCUPIED;
-            }
-            // Will probably never happen
-            else if(i >= this.blocksDone()) {
                 break OCCUPIED;
             }
             else if(this.blocks[i].relativeTopY >= 0) {
@@ -71,7 +80,8 @@ export class TetrisRound {
             }
         }
         this.occupiedExceptActive = allOccupiedSquares;
-
+    }
+    maybeTakeStep() {
         ++this.loopsSinceStep;
         if(this.loopsSinceStep > this.loopsPerStep) {
             this.loopsSinceStep = 0;
@@ -81,6 +91,39 @@ export class TetrisRound {
                 this.doneWithBlock();
             }
         }
+    }
+    checkForCompletedRows() {
+        var completedRows = [];
+
+        for (var row = 0; row < this.area.verticalBlocks; row++) {
+            var completedCells = 0;
+
+            for (var blockIndex = 0; blockIndex < this.occupiedExceptActive.length; blockIndex++) {
+                var block = this.occupiedExceptActive[blockIndex];
+
+                for (var squareIndex = 0; squareIndex < block.length; squareIndex++) {
+                    var square = block[squareIndex];
+                 //   console.log(square.y, row);
+                    if(square.y == row) {
+                        completedCells = completedCells + 1;
+                    }
+                }
+            }
+            if(completedCells === this.area.horizontalBlocks) {
+                completedRows.push(row);
+            }
+        }
+        this.giveScoreForClearedRows(completedRows.length);
+
+    }
+
+    update() {
+        this.updateSquaresOccupiedByDroppedBlocks();
+        this.maybeTakeStep();
+        this.checkForCompletedRows();
+
+    }
+    draw() {
         for (var i = 0; i < this.blocks.length; i++) {
             if(i > this.blocksDone()) {
                 continue;

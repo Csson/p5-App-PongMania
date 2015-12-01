@@ -53,22 +53,6 @@ export class TetrisBlock {
     doRotate(newRotation) {
         this.rotation = newRotation;
         this.fills = this.getFillForTypeRotation(this.type, newRotation);
-
-//        var canWallKick = true;
-//        if(this.actualLeftX(fills) < 0) {
-//            if(!this.moveRight(occupiedByOthers)) {
-//                canWallKick = false;
-//            }
-//        }
-//        else if(this.actualRightX(fills) > this.area.horizontalBlocks * this.unitSize) {
-//            if(!this.moveLeft(occupiedByOthers)) {
-//                canWallKick = false;
-//            }
-//        }
-//        if(canWallKick) {
-//            this.rotation = newRotation;
-//            this.fills = this.getFillForTypeRotation(this.type, this.rotation);
-//        }
     }
     rotate(occupiedByOthers) {
         var nextRotation;
@@ -138,13 +122,6 @@ export class TetrisBlock {
             }
             this.doRotate(nextRotation);
         }
-
-        /*nextFills = this.getFillForTypeRotation(this.type, nextRotation);
-        var canRotate = true;
-
-        if(canRotate) {
-            this.doRotate(nextRotation);
-        }*/
     }
     moveLeft(occupiedByOthers) {
         if(this.actualLeftX() == 0) {
@@ -456,7 +433,7 @@ export class TetrisBlock {
                 [
                     '_#__',
                     '##__',
-                    '#____',
+                    '#___',
                     '____',
                 ],
                 [

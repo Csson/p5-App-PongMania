@@ -35,6 +35,8 @@ class Tetris {
             ctx: this.ctx,
             area: this.area,
         });
+        this.totalScore = ko.observable(0);
+        this.currentRoundScore = ko.observable(this.round.roundScore);
 
         $(document).keydown((e) => {
             console.log('down key ' + e.which);
@@ -78,6 +80,7 @@ class Tetris {
 
     run() {
         this.draw();
+        this.round.update();
         this.round.draw();
         var self = this;
         setTimeout(function() { self.run() }, 25);
