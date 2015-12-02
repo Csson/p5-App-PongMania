@@ -143,19 +143,45 @@ export class TetrisBlock {
         this.occupies.map( (occupiedSquare) => {
             if(this.isWithinArea(occupiedSquare)) {
                 var topX = 0.5 + this.area.left + (occupiedSquare.x - 1) * this.unitSize;
-                var topY = 0.5 + this.area.top + (occupiedSquare.y - 1) * this.unitSize
+                var topY = 0.5 + this.area.top + (occupiedSquare.y - 1) * this.unitSize;
                 this.ctx.fillRect(topX, topY, this.unitSize - 1, this.unitSize - 1);
-                this.drawLine(this.color.lighter, topX, topY, this.unitSize - 1, 0);
-                this.drawLine(this.color.lighter, topX, topY, 0, this.unitSize - 1);
-                this.drawLine(this.color.darker, topX, topY + this.unitSize - 1, this.unitSize - 1, 0);
-                this.drawLine(this.color.darker, topX + this.unitSize - 1, topY, 0, this.unitSize - 1);
-
+                this.drawLine(1, this.color.lighter, topX, topY, this.unitSize - 1, 0);
+                this.drawLine(1, this.color.lighter, topX, topY, 0, this.unitSize - 1);
+                this.drawLine(1, this.color.darker, topX, topY + this.unitSize - 1, this.unitSize - 1, 0);
+                this.drawLine(1, this.color.darker, topX + this.unitSize - 1, topY, 0, this.unitSize - 1);
             }
         });
+
+        for (var i = 0; i < this.occupies.length; i++) {
+
+            var first = this.occupies[i];
+            if(!this.isWithinArea(first)) {
+                continue;
+            }
+            for (var j = i + 1; j < this.occupies.length; j++) {
+
+                var second = this.occupies[j];
+                if(!this.isWithinArea(second)) {
+                    continue;
+                }
+
+                var startX = this.area.left + (first.x - 1) * this.unitSize + this.unitSize / 2;
+                var startY = this.area.top + (first.y - 1) * this.unitSize + this.unitSize / 2
+
+                if(first.x === second.x && first.y !== second.y) {
+                    var direction = first.y < second.y ? 1 : -1;
+                    this.drawLine(5, this.color.darker, startX, startY, 0, direction * this.unitSize);
+                }
+                else if(first.x !== second.x && first.y === second.y) {
+                    var direction = first.x < second.x ? 1 : -1;
+                    this.drawLine(5, this.color.darker, startX, startY, direction * this.unitSize, 0);
+                }
+            }
+        }
     }
     drawShadow(occupiedByOthers) {
         var clone = this.clone();
-        clone.color = { main: '#666666', lighter: '#777777', darker: '#555555' };
+        clone.color = { main: '#666666', lighter: '#777777', darker: '#5f5f5f' };
         clone.drop(occupiedByOthers);
         clone.draw();
     }
@@ -179,7 +205,7 @@ export class TetrisBlock {
 
             if(!rowToBeDeleted) {
                 newOccupies.push(square);
-    
+
                 if(uniqueOccupiedRows[-1] !== square.y) {
                     uniqueOccupiedRows.push(square.y);
                 }
@@ -188,7 +214,7 @@ export class TetrisBlock {
 
         var newBlock = null;
         if(uniqueOccupiedRows.length > 1) {
-    
+
             thisNewOccupies = [];
             newBlockOccupies = [];
 
@@ -245,7 +271,9 @@ export class TetrisBlock {
         return newOccupies;
 
     }
-    drawLine(color, fromX, fromY, lengthX, lengthY) {
+    drawLine(lineWidth, color, fromX, fromY, lengthX, lengthY) {
+        this.ctx.lineWidth = lineWidth;
+        this.ctx.lineCap = 'round';
         this.ctx.strokeStyle = color;
         this.ctx.beginPath();
         this.ctx.moveTo(fromX, fromY);
@@ -261,7 +289,7 @@ export class TetrisBlock {
              : this.type === 'S' ? { main: '#22bb88', lighter: '#55ddaa', darker: '#009966' }
              : this.type === 'T' ? { main: '#b934db', lighter: '#db56fd', darker: '#9712b9' }
              : this.type === 'Z' ? { main: '#dd2222', lighter: '#ff5555', darker: '#bb0000' }
-             :                     { main: '#ffffff', lighter: '#ffffff', darker: '#ffffff' }
+             :                     { main: '#ffffff', lighter: '#ffffff', darker: '#000000' }
              ;
     }
     getFillForTypeRotation(rotation) {

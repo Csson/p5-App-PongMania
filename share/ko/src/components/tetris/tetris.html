@@ -1,4 +1,17 @@
 <div id="tetris-page">
     <canvas class="full"></canvas>
 </div>
-<div id="tetris-round-score" data-bind="text: currentRoundScore()"></div>
+<div id="scorer">
+    <div>
+        <h2>score</h2>
+        <p data-bind="text: score"></p>
+    </div>
+    <div>
+        <h2>level</h2>
+        <p data-bind="text: level"></p>
+    </div>
+    <div>
+        <h2>completed rows</h2>
+        <p data-bind="text: completedRows"></p>
+    </div>
+</div>

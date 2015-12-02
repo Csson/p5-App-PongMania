@@ -12431,8 +12431,8 @@ require.config({
     "tetris": [
       "text!components/tetris/tetris.html",
       "components/tetris/block",
-      "components/tetris/round",
-      "components/tetris/tetris"
+      "components/tetris/tetris",
+      "components/tetris/round"
     ]
   }
 });

@@ -41,7 +41,6 @@ export class TetrisRound {
         this.roundScore(this.roundScore() + scoreIncrease);
     }
     doneWithBlock(wasDropped) {
-        //this.activeBlock().relativeTopY = 0;
         this.blocksDone(this.blocksDone() + 1);
         this.heapBlocks.push(this.blocks.shift());
         this.increaseScoreWith(3 * this.level() + (wasDropped ? 21 : 3));
@@ -103,7 +102,6 @@ export class TetrisRound {
                 ++occupiedPerRow[square.y];
             });
         });
-        console.log(occupiedPerRow);
 
         CHECKCOMPLETED:
         for (var rowIndex = 0; rowIndex <= this.area.verticalBlocks; rowIndex++) {
@@ -151,35 +149,7 @@ export class TetrisRound {
 
             this.heapBlocks = newHeapBlocks;
         }
-
-/*
-
-        for (var row = 0; row < this.area.verticalBlocks; row++) {
-            var completedCells = 0;
-
-            for (var blockIndex = 0; blockIndex < this.allOccupiedSquares.length; blockIndex++) {
-                var block = this.allOccupiedSquares[blockIndex];
-
-                for (var squareIndex = 0; squareIndex < block.length; squareIndex++) {
-                    var square = block[squareIndex];
-
-                    if(square.y == row) {
-                        completedCells = completedCells + 1;
-                    }
-                }
-            }
-            if(completedCells === this.area.horizontalBlocks) {
-                completedRows.push(row);
-            }
-        }
-
-        if(completedRows.length > 0) {
-            this.giveScoreForClearedRows(completedRows.length);
-            this.handleCompletedRows(completedRows);
-        }
-        return completedRows.length > 0 ? true : false;
-        */
-
+        return completedRows.length;
     }
 
     update() {
@@ -191,7 +161,15 @@ export class TetrisRound {
             this.maybeTakeStep();
         }
         this.draw();
-        this.checkForCompletedRows();
+
+        HADCOMPLETED:
+        while(1) {
+            var completedRows = this.checkForCompletedRows();
+            if(!completedRows) {
+                break HADCOMPLETED;
+            }
+            this.giveScoreForClearedRows(completedRows);
+        }
 
     }
     draw() {
@@ -212,43 +190,10 @@ export class TetrisRound {
                 if(howFarDropped > 0) {
                     couldDropAnyBlock = true;
                 }
-         //       console.log(howFarDropped, couldDropAnyBlock, this.allOccupiedSquares());
             }
-       //     console.log('while/end, couldDropAnyBlock:', couldDropAnyBlock);
-//console.log(this.heapBlocks);
         }
     }
-    handleCompletedRows(completedRows) {
-        /*for (var rowIndex = 0; rowIndex < completedRows.length; rowIndex++) {
-            var row = completedRows[rowIndex];
-            this.ctx.fillStyle = '#fff';
-            for (var cellIndex = 0; cellIndex < this.area.horizontalBlocks; cellIndex++) {
-                this.ctx.fillRect(
-                    this.area.left + cellIndex * this.unitSize,
-                    this.area.top + row * this.unitSize,
-                    this.unitSize,
-                    this.unitSize
-                );
-            }
-            for (var blockIndex = 0; blockIndex < this.blocksDone(); blockIndex++) {
-                var block = this.blocks[blockIndex];
-                block.removeFromRow(row);
-            }
 
-        }
-
-        var aBlockCouldDrop = true;
-        while(aBlockCouldDrop) {
-            aBlockCouldDrop = false;
-
-            for (var blockIndex = 0; blockIndex < this.blocksDone(); blockIndex++) {
-                var occupiedExceptThis = this.allOccupiedSquaresExpectBlockIndex(blockIndex);
-                var block = this.blocks[blockIndex];
-                aBlockCouldDrop = block.moveDown(occupiedExceptThis);
-            }
-            console.log(aBlockCouldDrop);
-        }*/
-    }
     allOccupiedSquares() {
         var allOccupiedSquares = [];
 
