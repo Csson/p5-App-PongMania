@@ -28,7 +28,7 @@ var requireJsRuntimeConfig = vm.runInNewContext(fs.readFileSync(source + '/app/r
         insertRequire: ['app/startup'],
         bundles: {
             pong: ['components/pong/pong'],
-            tetris: ['components/tetris/tetris', 'components/tetris/round', 'components/tetris/block'],
+            tetris: ['components/tetris/tetris', 'components/tetris/block'],
             //about: ['text!components/about-page/about.html']
             // If you want parts of the site to load on demand, remove them from the 'include' list
             // above, and group them into bundles here.
