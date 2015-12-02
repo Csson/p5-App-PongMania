@@ -1,7 +1,7 @@
 import ko from 'knockout';
 import templateMarkup from 'text!./tetris.html';
 import { TetrisRound } from './round';
-import { TetrisBlock } from './block';
+import { TetrisBlock, TetrisBlock2 } from './block';
 
 class Tetris {
     constructor(params) {
@@ -17,16 +17,23 @@ class Tetris {
 
         var horizontalBlocks = 10;
         var verticalBlocks = 20;
+
+        var width = this.unitSize * horizontalBlocks;
+        var height = this.unitSize * verticalBlocks;
+        var left = Math.floor(this.canvasWidth / 2 - width / 2);
+        var top = Math.floor(this.canvasHeight / 2 - height / 2);
+
         this.area = {
-            left: this.canvasWidth / 2 - this.unitSize * horizontalBlocks / 2,
-            top: this.canvasHeight / 2 - this.unitSize * verticalBlocks / 2,
-            right: this.canvasWidth / 2 + this.unitSize * horizontalBlocks,
-            bottom: this.canvasHeight / 2 + this.unitSize * verticalBlocks,
-            width: this.unitSize * horizontalBlocks,
-            height: this.unitSize * verticalBlocks,
+            left: left,
+            top: top,
+            width: width,
+            height: height,
+            right: this.left + width,
+            bottom: this.top + height,
             horizontalBlocks: horizontalBlocks,
             verticalBlocks: verticalBlocks,
         };
+        this.paused = ko.observable(false);
         console.log(this);
 
         this.round = new TetrisRound({
@@ -34,26 +41,46 @@ class Tetris {
             unitSize: this.unitSize,
             ctx: this.ctx,
             area: this.area,
+            game: this,
         });
         this.totalScore = ko.observable(0);
         this.currentRoundScore = ko.observable(this.round.roundScore);
 
         $(document).keydown((e) => {
-            console.log('down key ' + e.which);
             if(e.which === 38) {
                 this.round.activeBlockRotate();
+                //this.block2.rotate();
             }
             else if(e.which === 37) {
                 this.round.activeBlockMoveLeft();
+                //this.block2.move('left');
             }
             else if(e.which === 39) {
                 this.round.activeBlockMoveRight();
+                //this.block2.move('right');
             }
             else if(e.which === 40) {
+                this.round.activeBlockMoveDown();
+                //this.block2.move('down');
+            }
+            else if(e.which === 32) {
                 this.round.activeBlockDrop();
+                //this.block2.drop();
+            }
+            else if(e.which === 80) {
+                this.paused(!this.paused());
+                console.log('Paused!');
             }
         });
-
+//        this.block2 = new TetrisBlock({
+//            type: 'J',
+//            rotation: 0,
+//            unitSize: this.unitSize,
+//            originSquare: { x: 1, y: 1},
+//            ctx: this.ctx,
+//            area: this.area,
+//        });
+      //  this.block2moves = ['right', 'right', 'right', 'down', 'down', 'down', 'left', 'left', 'left', 'left', 'left', 'rotate', 'rotate', 'left', 'right', 'right', 'rotate', 'left', 'rotate', 'right', 'rotate', 'left', 'right', 'right', 'right', 'right', 'right', 'right', 'right', 'right', 'right', 'right', 'down', 'down', 'down', 'down', 'down', 'down', 'down', 'down', 'down', 'down', 'down', 'down', 'down', 'down', 'down'];
         this.run();
         
     }
@@ -79,11 +106,22 @@ class Tetris {
     }
 
     run() {
-        this.draw();
-        this.round.update();
+        if(!this.paused()) {
+            this.draw();
+            this.round.update();
+          //  var nextBlock2Move = this.block2moves.shift();
+          //  console.log(nextBlock2Move);
+          //  if(nextBlock2Move === 'rotate') {
+          //      this.block2.rotate();
+          //  }
+          //  else {
+          //      this.block2.move(nextBlock2Move);
+          //  }
+          //  this.block2.draw();
 
-        if(this.round.isRoundCompleted()) {
-            console.log('Done!');
+            if(this.round.isRoundCompleted()) {
+                console.log('Done!');
+            }
         }
         var self = this;
         setTimeout(function() { self.run() }, 25);

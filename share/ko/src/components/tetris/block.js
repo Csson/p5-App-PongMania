@@ -8,287 +8,263 @@ export class TetrisBlock {
         this.color = params.color || this.colorDefault();
         this.unitSize = params.unitSize;
         this.ctx = params.ctx;
-        this.relativeTopX = params.topX || this.unitSize * Math.floor((this.area.horizontalBlocks - 2) / 2);
-        this.relativeTopY = params.topY || -4 * this.unitSize;
-        this.fills = this.getFillForTypeRotation(this.type, this.rotation);
-
+        this.originSquare = params.originSquare; // { x: ?, y: ? }
+        this.occupies = this.getOccupation(this.rotation);
     }
-    colorDefault() {
-        return this.type === 'I' ? '#00ffff'
-             : this.type === 'J' ? '#0000ff'
-             : this.type === 'L' ? '#ffaa00'
-             : this.type === 'O' ? '#ffff00'
-             : this.type === 'S' ? '#00ddbb'
-             : this.type === 'T' ? '#9900ff'
-             : this.type === 'Z' ? '#ff0000'
-             :                     '#fff'
-             ;
+    clone() {
+        var clone = new TetrisBlock(Object.assign({}, this));
+        clone.originSquare = this.copyArray(this.originSquare);
+        clone.area = this.copyArray(this.area);
+        clone.occupies = this.copyArray(this.occupies);
+        return clone;
     }
-    actualLeftX(fills) {
-        var fillsToCheck = fills || this.fills;
-        var minFilledX = 3;
-        for (var row = 0; row < fillsToCheck.length; row++) {
-            var cells = fillsToCheck[row].split('');
-            for (var column = 0; column <= 3; column++) {
-                if(cells[column] === '#' && column < minFilledX) {
-                    minFilledX = column;
-                }
+
+    move(direction, occupiedByOthers, steps = 1) {
+        if(direction !== 'down' && direction !== 'left' && direction !== 'right') {
+            console.log('Bad argument to block.move()');
+        }
+        var changeXBy = direction === 'left'  ? -steps
+                      : direction === 'right' ? steps
+                      :                         0
+                      ;
+
+        var changeYBy = direction === 'down' ? steps : 0;
+        var newOccupies = this.copyArray(this.occupies);
+
+        for (var i = 0; i < newOccupies.length; i++) {
+            newOccupies[i].x = newOccupies[i].x + changeXBy;
+            newOccupies[i].y = newOccupies[i].y + changeYBy;
+        }
+
+        var couldMove = true;
+        for (var i = 0; i < newOccupies.length; i++) {
+            if(!this.isWithinExtendedArea(newOccupies[i])) {
+                couldMove = false;
             }
         }
-        return this.relativeTopX + minFilledX * this.unitSize;
-    }
-    actualRightX(fills) {
-        var fillsToCheck = fills || this.fills;
-        var maxFilledX = 0;
-        for (var row = 0; row < fillsToCheck.length; row++) {
-            var cells = fillsToCheck[row].split('');
-            for (var column = 0; column <= 3; column++) {
-                if(cells[column] === '#' && column > maxFilledX) {
-                    maxFilledX = column;
-                }
-            }
-        }
-        return this.relativeTopX + (1 + maxFilledX) * this.unitSize;
-    }
-    doRotate(newRotation) {
-        this.rotation = newRotation;
-        this.fills = this.getFillForTypeRotation(this.type, newRotation);
-    }
-    rotate(occupiedByOthers) {
-        var nextRotation;
-        if(this.rotation + 1 > 3) {
-            nextRotation = 0;
-        }
-        else if(this.rotation + 1 < 0) {
-            nextRotation = 3;
-        }
-        else {
-            nextRotation = this.rotation + 1;
+        couldMove = couldMove ? this.checkOverlap(newOccupies, occupiedByOthers) : false;
+
+        if(couldMove) {
+            this.originSquare.x = this.originSquare.x + changeXBy;
+            this.originSquare.y = this.originSquare.y + changeYBy;
+            this.occupies = newOccupies.slice();
         }
 
-        var simBlock = new TetrisBlock(Object.assign({}, this));
-        simBlock.relativeTopX = this.relativeTopX;
-        simBlock.relativeTopY = this.relativeTopY;
-        simBlock.doRotate(nextRotation);
-
-        var rotatedOk = true;
-        var shouldMoveRight = false;
-        var shouldMoveLeft = false;
-
-        // Can we wall kick to the right?
-        if(simBlock.actualLeftX() < 0) {
-            console.log('shouldmoveright');
-            shouldMoveRight = true;
-            
-            if(!simBlock.moveRight(occupiedByOthers)) {
-                rotatedOk = false;
-            }
-        }
-        // wall kick to the left?
-        else if(simBlock.actualRightX() > simBlock.area.horizontalBlocks * simBlock.unitSize) {
-            shouldMoveLeft = true;
-
-            if(!simBlock.moveLeft(occupiedByOthers)) {
-                rotatedOk = false;
-            }
-        }
-        // If we overlap another block, try moving left/right
-        else if(!simBlock.checkMovability(simBlock.occupiedSquares(), occupiedByOthers)) {
-            if(simBlock.actualLeftX() > simBlock.unitSize) {
-                shouldMoveRight = true;
-
-                if(!simBlock.moveRight(occupiedByOthers)) {
-                    rotatedOk = false;
-                }
-            }
-            else if(simBlock.actualRightX() < simBlock.area.horizontalBlocks * simBlock.unitSize - simBlock.unitSize) {
-                shouldMoveLeft = true;
-
-                if(!simBlock.moveLeft(occupiedByOthers)) {
-                    rotatedOk = false;
-                }
-            }
-            else {
-                rotatedOk = false;
-            }
-        }
-
-        if(rotatedOk) {
-            if(shouldMoveRight) {
-                this.moveRight(occupiedByOthers);
-            }
-            else if(shouldMoveLeft) {
-                this.moveLeft(occupiedByOthers);
-            }
-            this.doRotate(nextRotation);
-        }
-    }
-    moveLeft(occupiedByOthers) {
-        if(this.actualLeftX() == 0) {
-            return;
-        }
-        
-        var newRelativeTopX = this.relativeTopX - this.unitSize;
-        var newOccupiedSquares = this.occupiedSquares(newRelativeTopX, this.RelativeTopY);
-
-        var canMove = this.checkMovability(newOccupiedSquares, occupiedByOthers);
-
-        if(canMove) {
-            this.relativeTopX = newRelativeTopX;
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-    moveRight(occupiedByOthers) {
-        if(this.actualRightX() == this.area.horizontalBlocks * this.unitSize) {
-            return;
-        }
-
-        var newRelativeTopX = this.relativeTopX + this.unitSize;
-        var newOccupiedSquares = this.occupiedSquares(newRelativeTopX, this.RelativeTopY);
-
-        var canMove = this.checkMovability(newOccupiedSquares, occupiedByOthers);
-
-        if(canMove) {
-            this.relativeTopX = newRelativeTopX;
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-    moveDown(occupiedByOthers) {
-        if(this.relativeTopY + this.blockHeight() === this.area.verticalBlocks * this.unitSize) {
-            return false;
-        }
-
-        var newRelativeTopY = this.relativeTopY + this.unitSize;
-        var newOccupiedSquares = this.occupiedSquares(this.relativeTopX, newRelativeTopY);
-
-        var canMove = this.checkMovability(newOccupiedSquares, occupiedByOthers);
-
-        if(canMove) {
-            this.relativeTopY = newRelativeTopY;
-            return true;
-        }
-        else {
-            return false;
-        }
-
+        return couldMove;
     }
     drop(occupiedByOthers) {
-        var newRelativeTopY = this.area.verticalBlocks * this.unitSize - this.marginBottom();
-        var wasDropped = false;
-        while(this.moveDown(occupiedByOthers)) { wasDropped = true }
-        return wasDropped;
+        var numberOfDowns = 0;
+        while(this.move('down', occupiedByOthers)) {
+            numberOfDowns++;
+        }
+        return numberOfDowns;
     }
-    checkMovability(newOccupiedSquares, occupiedByOthers) {
-        var canMove = true;
+    rotate(occupiedByOthers) {
+        var nextRotation = this.rotation + 1 > 3 ? 0 : this.rotation + 1;
+        var clone = this.clone();
+        clone.rotation = nextRotation;
+        clone.occupies = clone.getOccupation(clone.rotation);
 
-        SEARCHING:
-        for (var i = 0; i < newOccupiedSquares.length; i++) {
-            var newOccupied = newOccupiedSquares[i]; // this block's would-be occupied squares
+        var nextOccupation = this.getOccupation(nextRotation);
+
+        var allAreWithin = true;
+        var minimumX = clone.area.horizontalBlocks;
+        var maximumX = 0;
+        var maximumY = 0;
+
+        clone.occupies.map( (occupiedSquare) => {
+            minimumX = occupiedSquare.x < minimumX ? occupiedSquare.x : minimumX;
+            maximumX = occupiedSquare.x > maximumX ? occupiedSquare.x : maximumX;
+            maximumY = occupiedSquare.x > maximumY ? occupiedSquare.y : maximumY;
+            if(!clone.isWithinExtendedArea(occupiedSquare)) {
+                allAreWithin = false;
+            }
+        });
+
+        var rotationOk = true;
+        if(!allAreWithin) {
+            if(minimumX < 1) {
+                rotationOk = clone.move('right', occupiedByOthers, Math.abs(minimumX) + 1);
+            }
+            else if(maximumX > clone.area.horizontalBlocks) {
+                rotationOk = clone.move('left', occupiedByOthers, maximumX - clone.area.horizontalBlocks);
+            }
+            else if(maximumY > clone.area.verticalBlocks) {
+                rotationOk = false;
+            }
+        }
+        rotationOk = rotationOk ? this.checkOverlap(clone.occupies, occupiedByOthers) : false;
+
+        if(rotationOk) {
+            this.occupies = clone.copyArray(clone.occupies);
+            this.rotation = clone.rotation;
+        }
+
+    }
+    withEachOccupiedSquare(doThis) {
+        for (var i = 0; i < this.occupies.length; i++) {
+            doThis(this.occupies[i]);
+        }
+    }
+    // extended area includes the hidden squares above the visible top
+    isWithinExtendedArea(occupiedSquare) {
+        return occupiedSquare.x >= 1
+            && occupiedSquare.x <= this.area.horizontalBlocks
+            && occupiedSquare.y >= -4
+            && occupiedSquare.y <= this.area.verticalBlocks ? true : false;
+    }
+    isWithinArea(occupiedSquare) {
+        return occupiedSquare.x >= 1
+            && occupiedSquare.x <= this.area.horizontalBlocks
+            && occupiedSquare.y >= 1
+            && occupiedSquare.y <= this.area.verticalBlocks ? true : false;
+    }
+    checkOverlap(oneBlockOccupy, occupiedByOthers) {
+        for (var i = 0; i < oneBlockOccupy.length; i++) {
+            var square = oneBlockOccupy[i];
 
             for (var j = 0; j < occupiedByOthers.length; j++) {
-                var occupiedByAnotherBlock = occupiedByOthers[j];
+                var otherBlock = occupiedByOthers[j];
 
-                for (var k = 0; k < occupiedByAnotherBlock.length; k++) {
-                    var oneOccupiedSquare = occupiedByAnotherBlock[k];
+                for (var k = 0; k < otherBlock.length; k++) {
+                    otherSquare = otherBlock[k];
 
-                    if(newOccupied.x === oneOccupiedSquare.x && newOccupied.y === oneOccupiedSquare.y) {
-                        canMove = false;
-                        break SEARCHING;
+                    if(square.x === otherSquare.x && square.y === otherSquare.y) {
+                        return false;
                     }
                 }
             }
         }
-        return canMove;
-        
-    }
-    blockHeight() {
-        var maxFilledY = this.maxFilledY();
-        return (1 + maxFilledY) * this.unitSize;
-    }
-    marginBottom(fills) {
-        var maxFilledY = this.maxFilledY(fills);
-        console.log('marginbottom: ' + (1 + maxFilledY) * this.unitSize);
-        return (1 + maxFilledY) * this.unitSize;
-    }
-    maxFilledY(fills) {
-        var fillsToCheck = fills || this.fills;
-        var maxFilledY = 0;
-        for (var row = 0; row < fillsToCheck.length; row++) {
-            var cells = fillsToCheck[row].split('');
-            for (var column = 0; column <= 3; column++) {
-                if(cells[column] === '#' && row > maxFilledY) {
-                    maxFilledY = row;
-                }
-            }
-        }
-        return maxFilledY;
-    }
-    topX() {
-        return this.relativeTopX + this.area.left;
-    }
-    topY() {
-        return this.relativeTopY + this.area.top;
+        return true;
     }
 
     draw() {
-        for (var rowIndex = 0; rowIndex <= 3; rowIndex++) {
-            var cells = this.fills[rowIndex].split('');
-            for (var cellIndex = 0; cellIndex <= 3; cellIndex++) {
+        this.ctx.fillStyle = this.color.main;
+        this.occupies.map( (occupiedSquare) => {
+            if(this.isWithinArea(occupiedSquare)) {
+                var topX = 0.5 + this.area.left + (occupiedSquare.x - 1) * this.unitSize;
+                var topY = 0.5 + this.area.top + (occupiedSquare.y - 1) * this.unitSize
+                this.ctx.fillRect(topX, topY, this.unitSize - 1, this.unitSize - 1);
+                this.drawLine(this.color.lighter, topX, topY, this.unitSize - 1, 0);
+                this.drawLine(this.color.lighter, topX, topY, 0, this.unitSize - 1);
+                this.drawLine(this.color.darker, topX, topY + this.unitSize - 1, this.unitSize - 1, 0);
+                this.drawLine(this.color.darker, topX + this.unitSize - 1, topY, 0, this.unitSize - 1);
 
-                if(cells[cellIndex] === '#' && this.relativeTopY + rowIndex * this.unitSize >= 0) {
-                    this.ctx.fillStyle = this.color;
-                    this.ctx.fillRect(this.topX() + cellIndex * this.unitSize, this.topY() + rowIndex * this.unitSize, this.unitSize, this.unitSize);
+            }
+        });
+    }
+    drawShadow(occupiedByOthers) {
+        var clone = this.clone();
+        clone.color = { main: '#666666', lighter: '#777777', darker: '#555555' };
+        clone.drop(occupiedByOthers);
+        clone.draw();
+    }
+
+    removeFromRows(rows) {
+
+        var newOccupies = [];
+        var uniqueOccupiedRows = [];
+
+        for (var j = 0; j < this.occupies.length; j++) {
+            var square = this.occupies[j];
+            var rowToBeDeleted = false;
+
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+
+                if(square.y === row) {
+                    rowToBeDeleted = true;
+                }
+            }
+
+            if(!rowToBeDeleted) {
+                newOccupies.push(square);
+    
+                if(uniqueOccupiedRows[-1] !== square.y) {
+                    uniqueOccupiedRows.push(square.y);
                 }
             }
         }
+
+        var newBlock = null;
+        if(uniqueOccupiedRows.length > 1) {
+    
+            thisNewOccupies = [];
+            newBlockOccupies = [];
+
+            var blockSplitsOn = null;
+            for (var i = 1; i < uniqueOccupiedRows.length; i++) {
+                if(uniqueOccupiedRows[i] - uniqueOccupiedRows[i - 1] > 1) {
+                    blockSplitsOn = uniqueOccupiedRows[i] - 1;
+                }
+            }
+            if(blockSplitsOn) {
+                for (var i = 0; i < newOccupies.length; i++) {
+                    var square = newOccupies[i];
+                    if(square.y < blockSplitsOn) {
+                        thisNewOccupies.push(square);
+                    }
+                    else {
+                        newBlockOccupies.push(square);
+                    }
+                }
+
+                this.occupies = this.copyArray(thisNewOccupies);
+                newBlock = this.clone();
+                newBlock.occupies = this.copyArray(newBlockOccupies);
+
+            }
+            else {
+                this.occupies = this.copyArray(newOccupies);
+            }
+
+        }
+        else {
+            this.occupies = this.copyArray(newOccupies);
+        }
+        return newBlock;
     }
-    occupiedSquares(relativeTopX, relativeTopY) {
-        var localRelativeTopX = relativeTopX || this.relativeTopX;
-        var localRelativeTopY = relativeTopY || this.relativeTopY;
-        var xOrigin = localRelativeTopX / this.unitSize;
-        var yOrigin = localRelativeTopY / this.unitSize;
 
-        var occupiedSquares = [];
+    getOccupation(rotation) {
+        var newOccupies = [];
 
-        for (var rowIndex = 0; rowIndex < this.fills.length; rowIndex++) {
-            var cells = this.fills[rowIndex].split('');
-            for (var cellIndex = 0; cellIndex <= 3; cellIndex++) {
-                if(cells[cellIndex] === '#' && this.relativeTopY + rowIndex * this.unitSize >= 0) {
-                    occupiedSquares.push({ x: xOrigin + cellIndex, y: yOrigin + rowIndex });
+        var fills = this.getFillForTypeRotation(rotation);
+
+        for (var rowIndex = 0; rowIndex < fills.length; rowIndex++) {
+            var cells = fills[rowIndex].split('');
+            for (var cellIndex = 0; cellIndex <= cells.length; cellIndex++) {
+
+                if(cells[cellIndex] === '#') {
+                    newOccupies.push({
+                        x: this.originSquare.x + cellIndex,
+                        y: this.originSquare.y + rowIndex,
+                    });
                 }
             }
         }
-        return occupiedSquares;
+        return newOccupies;
+
     }
-    removeFromRow(row) {
-        var occupiedSquares = this.occupiedSquares();
-        var yOrigin = this.relativeTopY / this.unitSize;
-        var fillOffset = row - yOrigin;
-        this.fills[fillOffset] = '----';
-
-        var movedFills = true;
-        while(movedFills) {
-            movedFills = false;
-
-            for (var i = 0; i < this.fills.length - 1; i++) {
-                var rowFill = this.fills[i];
-                var nextFill = this.fills[i + 1];
-                if(rowFill === '----' && nextFill !== '----') {
-                    movedFills = true;
-                    this.fills[i] = nextFill;
-                    this.fills[i + 1] = rowFill;
-                }
-            }
-        }
+    drawLine(color, fromX, fromY, lengthX, lengthY) {
+        this.ctx.strokeStyle = color;
+        this.ctx.beginPath();
+        this.ctx.moveTo(fromX, fromY);
+        this.ctx.lineTo(fromX + lengthX, fromY + lengthY);
+        this.ctx.stroke();
     }
 
-    getFillForTypeRotation(type, rotation) {
+    colorDefault() {
+        return this.type === 'I' ? { main: '#22dddd', lighter: '#55ffff', darker: '#00bbbb' }
+             : this.type === 'J' ? { main: '#2a64db', lighter: '#4c86fd', darker: '#0842d9' }
+             : this.type === 'L' ? { main: '#dd8822', lighter: '#ffaa55', darker: '#bb6600' }
+             : this.type === 'O' ? { main: '#dddd22', lighter: '#ffff55', darker: '#bbbb00' }
+             : this.type === 'S' ? { main: '#22bb88', lighter: '#55ddaa', darker: '#009966' }
+             : this.type === 'T' ? { main: '#b934db', lighter: '#db56fd', darker: '#9712b9' }
+             : this.type === 'Z' ? { main: '#dd2222', lighter: '#ff5555', darker: '#bb0000' }
+             :                     { main: '#ffffff', lighter: '#ffffff', darker: '#ffffff' }
+             ;
+    }
+    getFillForTypeRotation(rotation) {
         var typeRotations = {
             I: [
                 [
@@ -473,9 +449,10 @@ export class TetrisBlock {
                 ],
             ],
         };
-        return typeRotations[type][rotation];
+        return typeRotations[this.type][rotation];
+    }
+    copyArray(array) {
+        return JSON.parse(JSON.stringify(array));
     }
 
 }
-/*
-*/
