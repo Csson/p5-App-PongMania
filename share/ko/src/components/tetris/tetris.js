@@ -247,13 +247,6 @@ class Tetris {
                         this.unitSize - 10,
                         this.unitSize - 10
                     );
-
-                    //this.ctx.fillRect(
-                    //    0.5 + this.area.left + (cellIndex - 1) * this.unitSize,
-                    //    0.5 + this.area.top + (rowIndex - 1) * this.unitSize,
-                    //    this.unitSize - 1,
-                    //    this.unitSize - 1
-                    //);
                 }
             }
         }
@@ -280,7 +273,7 @@ class Tetris {
 
     update() {
         if(this.hadCompletedRowsOnLastUpdate) {
-            this.dropAfterCompleted();
+            //this.dropAfterCompleted();
             this.hadCompletedRowsOnLastUpdate = false;
         }
         else {
@@ -288,13 +281,18 @@ class Tetris {
         }
         this.draw();
 
+        var totalCompletedRows = 0;
         HADCOMPLETED:
         while(1) {
             var completedRows = this.checkForCompletedRows();
             if(!completedRows) {
                 break HADCOMPLETED;
             }
-            this.giveScoreForClearedRows(completedRows);
+            totalCompletedRows += completedRows;
+            this.dropAfterCompleted();
+        }
+        if(totalCompletedRows) {
+            this.giveScoreForClearedRows(totalCompletedRows);
         }
 
     }

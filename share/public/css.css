@@ -89,6 +89,13 @@ canvas.full {
     left: 50%;
     right: 50%;
     margin-left: -300px;
+    color: #777;
+    text-shadow: 0px 0px 30px #eee,
+                -1px -1px 0px #555,
+                 1px -1px 0px #555,
+                -1px  1px 0px #555,
+                 1px  1px 0px #555;
+
     font-family: 'courier new', courier, 'sans-serif';
 }
 
