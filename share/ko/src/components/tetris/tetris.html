@@ -1,6 +1,7 @@
 <div id="tetris-page">
     <canvas class="full"></canvas>
 </div>
+<div id="title">TETRIS</div>
 <div id="scorer">
     <div>
         <h2>score</h2>
@@ -14,4 +15,29 @@
         <h2>completed rows</h2>
         <p data-bind="text: completedRows"></p>
     </div>
+</div>
+<div class="splash" data-bind="visible: anyKeyToStart">
+    <h2>Press any key to start game</h2>
+    <ul class="list-unstyled">
+        <li><b>Controls:</b></li>
+        <li>Up arrow: rotate</li>
+        <li>Left/right arrow: move block</li>
+        <li>Down arrow: drop block softly</li>
+        <li>Space: drop block all the way</li>
+        <li>P: Pause</li>
+    </ul>
+</div>
+<div class="splash" data-bind="visible: paused">
+    <h2>The game is paused</h2>
+    <p>Press P to resume playing</p>
+</div>
+<div class="splash" data-bind="visible: gameIsOver">
+    <h2>Game over!</h2>
+    <p>You got <b data-bind="text: score"></b> points</p>
+    <p>Press Enter to play again</p>
+</div>
+<div class="splash" data-bind="visible: gameIsCompleted">
+    <h2>You completed the game!</h2>
+    <p>You got <b data-bind="text: score"></b> points</p>
+    <p>Press Enter to play again</p>
 </div>

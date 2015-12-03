@@ -8,44 +8,62 @@ class Tetris {
         $gameArea[0].width = window.innerWidth;
         $gameArea[0].height = window.innerHeight;
 
+
         this.canvasWidth = $gameArea.width();
         this.canvasHeight = $gameArea.height();
         this.ctx = $gameArea[0].getContext('2d');
 
-        this.unitSize = 20;
-
         var horizontalBlocks = 10;
         var verticalBlocks = 20;
+        this.unitSize = Math.round(this.canvasHeight * 0.7 / verticalBlocks);
+
 
         var width = this.unitSize * horizontalBlocks;
         var height = this.unitSize * verticalBlocks;
         var left = Math.floor(this.canvasWidth / 2 - width / 2);
         var top = Math.floor(this.canvasHeight / 2 - height / 2);
+        $('#title').css({ top: top / 4, fontSize: top / 2 });
+        $('#scorer').css({ left: left + width + this.unitSize });
+        $('#scorer').css({ top: top });
+        $('#scorer h2').css({ fontSize: this.unitSize * 1.2 });
+        $('#scorer p').css({ fontSize: this.unitSize * 2.4, marginTop: - this.unitSize });
+
+        $('.splash').css({ top: top + this.unitSize * 2, width: this.unitSize * 24, marginLeft: -this.unitSize * 12 - 10 });
+        $('.splash h2').css({ fontSize: this.unitSize * 1.5 });
+        $('.splash ul, .splash p').css({ fontSize: this.unitSize * 0.7 });
 
         this.area = {
             left: left,
             top: top,
             width: width,
             height: height,
-            right: this.left + width,
-            bottom: this.top + height,
+            right: left + width,
+            bottom: top + height,
             horizontalBlocks: horizontalBlocks,
             verticalBlocks: verticalBlocks,
         };
-        this.paused = ko.observable(false);
-
+        var nextBlockAreaLeft = left - this.unitSize * 7;
+        this.nextBlockArea = {
+            left: nextBlockAreaLeft,
+            top: top,
+            width: this.unitSize * 6,
+            height: this.unitSize * 6,
+            right: nextBlockAreaLeft +  this.unitSize * 6,
+            bottom: top +  this.unitSize * 6,
+            horizontalBlocks: 6,
+            verticalBlocks: 6,
+        }
         this.level = ko.observable(1);
-        this.heapBlocks = [];
-        this.blocks = this.getBagOfBlocks();
-        this.loopsPerStep = this.loopsPerStepForLevel(this.level());
-        this.loopsSinceStep = 0;
-        this.hadCompletedRowsOnLastUpdate = false;
         this.completedRows = ko.observable(0);
-
         this.score = ko.observable(0);
+        this.paused = ko.observable(false);
+        this.gameIsOver = ko.observable(false);
+        this.gameIsCompleted = ko.observable(false);
+        this.anyKeyToStart = ko.observable(true);
+        this.resetGame();
 
         $(document).keydown((e) => {
-            if(!this.paused()) {
+              if(this.gameIsRunning()) {
                 if(e.which === 38)      { this.activeBlock().rotate(this.allOccupiedSquares())        }
                 else if(e.which === 37) { this.activeBlock().move('left', this.allOccupiedSquares())  }
                 else if(e.which === 39) { this.activeBlock().move('right', this.allOccupiedSquares()) }
@@ -53,9 +71,30 @@ class Tetris {
                 else if(e.which === 32) { this.activeBlockDrop()                                      }
             }
             if(e.which === 80) { this.paused(!this.paused()) }
+            if(this.anyKeyToStart()) { this.anyKeyToStart(false) }
+            if((this.gameIsOver() || this.gameIsCompleted()) && (e.which === 13)) {
+                this.resetGame();
+            }
         });
         this.run();
 
+    }
+
+    resetGame() {
+        this.heapBlocks = [];
+        this.blocks = this.getBagOfBlocks();
+        this.level(1);
+        this.loopsPerStep = this.loopsPerStepForLevel(1);
+        this.loopsSinceStep = 0;
+        this.hadCompletedRowsOnLastUpdate = false;
+        this.completedRows(0);
+        this.score(0);
+        this.gameIsOver(false);
+        this.gameIsCompleted(false);
+    }
+
+    gameIsRunning() {
+        return !(this.paused() || this.anyKeyToStart() || this.gameIsOver() || this.gameIsCompleted());
     }
 
     drawArea() {
@@ -64,25 +103,34 @@ class Tetris {
         // game area
         this.ctx.fillRect(this.area.left, this.area.top, this.area.width, this.area.height);
 
+        // next blocks area
+        this.ctx.fillRect(this.nextBlockArea.left, this.nextBlockArea.top, this.nextBlockArea.width, this.nextBlockArea.height);
+
         // grid
         var c = this.ctx;
         c.lineWidth = 1;
         this.ctx.lineCap = 'butt';
         for (var x = 1; x < this.area.horizontalBlocks; x++) {
-            c.beginPath();
-            c.moveTo(x * this.unitSize + this.area.left, this.area.top);
-            c.lineTo(x * this.unitSize + this.area.left, this.area.top  + this.area.height);
-            c.strokeStyle = '#888';
-            c.stroke();
+            this.drawLine(
+                1,
+                '#888',
+                x * this.unitSize + this.area.left,
+                this.area.top,
+                0,
+                this.area.height
+            );
+
         }
 
     }
 
     run() {
-        if(!this.paused()) {
+        if(this.anyKeyToStart()) {
+            this.drawArea();
+        }
+        else if(this.gameIsRunning()) {
             this.drawArea();
             this.update();
-
         }
         var self = this;
         setTimeout(function() { self.run() }, 10);
@@ -99,7 +147,7 @@ class Tetris {
              : level == 8 ? 8
              : level == 9 ? 7
              : level == 10 ? 5
-             :              1000
+             :              99999 // magic
              ;
     }
     activeBlock() {
@@ -109,18 +157,27 @@ class Tetris {
     maybeIncreaseLevel() {
         if(this.completedRows() >= this.level() * 10) {
             this.level(this.level() + 1);
+            if(this.loopsPerStepForLevel(this.level()) >= 99999) {
+                this.gameIsCompleted(true);
+                return;
+            }
             this.loopsPerStep = this.loopsPerStepForLevel(this.level());
         }
     }
     increaseScoreWith(scoreIncrease) {
         this.score(this.score() + scoreIncrease);
     }
-    doneWithBlock(wasDropped) {
+    doneWithBlock(dropDistance = 0) {
+        if(this.activeBlock().originSquare.y < 1) {
+            this.gameIsOver(true);
+            return;
+        }
         this.heapBlocks.push(this.blocks.shift());
-        this.increaseScoreWith(3 * this.level() + (wasDropped ? 21 : 3));
-
-        if(!this.blocks.length) {
-            this.blocks = this.getBagOfBlocks();
+        if(dropDistance > 0) {
+            this.increaseScoreWith(3 * this.level() + dropDistance + 3);
+        }
+        if(this.blocks.length < 4) {
+            this.blocks = this.blocks.concat(this.getBagOfBlocks());
         }
     }
     giveScoreForSoftDrop() {
@@ -146,8 +203,7 @@ class Tetris {
         }
     }
     activeBlockDrop() {
-        this.activeBlock().drop(this.allOccupiedSquares());
-        this.doneWithBlock(1);
+        this.doneWithBlock( this.activeBlock().drop(this.allOccupiedSquares()) );
     }
 
     maybeTakeStep() {
@@ -204,8 +260,6 @@ class Tetris {
 
         if(completedRows.length) {
             var newHeapBlocks = [];
-            console.log('completed: ', completedRows);
-            //this.game.paused(true);
 
             for (var i = 0; i < this.heapBlocks.length; i++) {
                 var block = this.heapBlocks[i];
@@ -250,6 +304,20 @@ class Tetris {
         for (var i = 0; i < this.heapBlocks.length; i++) {
             this.heapBlocks[i].draw();
         }
+
+        var nextBlock = this.blocks[1];
+        console.log(nextBlock);
+
+        var displayedNextBlock = new TetrisBlock({
+            type: nextBlock.type,
+            rotation: nextBlock.rotation,
+            unitSize: this.unitSize,
+            originSquare: { x: 2, y: 2 },
+            ctx: this.ctx,
+            area: this.nextBlockArea,
+        });
+        console.log(displayedNextBlock);
+        displayedNextBlock.draw();
     }
     dropAfterCompleted() {
         var couldDropAnyBlock = true;
@@ -304,16 +372,23 @@ class Tetris {
                 type: type,
                 rotation: rotation[ Math.floor(Math.random() * rotation.length) ],
                 unitSize: this.unitSize,
-                originSquare: { x: Math.floor(this.area.horizontalBlocks / 2), y: -2 },
+                originSquare: { x: Math.floor(this.area.horizontalBlocks / 2) - 1, y: -2 },
                 ctx: this.ctx,
                 area: this.area,
             }));
         }
-        console.log(blocks);
         return blocks;
     }
     copyArray(array) {
         return JSON.parse(JSON.stringify(array));
+    }
+    drawLine(lineWidth, color, fromX, fromY, lengthX, lengthY) {
+        this.ctx.lineWidth = lineWidth;
+        this.ctx.strokeStyle = color;
+        this.ctx.beginPath();
+        this.ctx.moveTo(fromX, fromY);
+        this.ctx.lineTo(fromX + lengthX, fromY + lengthY);
+        this.ctx.stroke();
     }
 
     dispose() {

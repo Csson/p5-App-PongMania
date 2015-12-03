@@ -82,19 +82,31 @@ canvas.full {
 #pong-game-over small {
     font-size: 12px;
 }
-#scorer {
+#title {
     position: absolute;
-    top: 50%;
+    text-align: center;
+    width: 600px;
     left: 50%;
-    margin-left: 150px;
-    margin-top: -230px;
+    right: 50%;
+    margin-left: -300px;
+    font-family: 'courier new', courier, 'sans-serif';
+}
+
+#scorer, .splash {
+    position: absolute;
     text-align: center;
 }
-#scorer h2 {
-    font-size: 30px;
+#scorer h2, #header {
     color: #555;
 }
 #scorer p {
-    font-size: 60px;
     color: #888;
+}
+.splash {
+    padding: 20px;
+    left: 50%;
+    right: 50%;
+    border: 3px solid #56597c;
+    background-color: #9eb8d8;
+    color: #704b46;
 }
