@@ -1,0 +1,40 @@
+<div id="finne-page" data-ws-url="http://localhost:3002/finne/ws">
+    <canvas></canvas>
+    %= button 'Clear games', data => { bind => 'click: clearAllGames' }, danger, style => 'position: absolute; top: 0px; left: 0px;'
+    <div id="chat">
+        <ul class="list-unstyled" id="chat-log" data-bind="foreach: chat.chatMessages">
+            <li data-bind=" css: className">
+                <span data-bind="text: message"></span>
+            </li>
+        </ul>
+%= form_for 'finne_chat', data => { bind => 'submit: submitChatMessage' }, begin
+    %= formgroup text_field => ['chat', data => { bind => 'value: chatMessage'} ]
+% end
+    </div>
+</div>
+
+
+<div id="finne-intro" class="modal" data-bind="modalVisible: function() { return !gameIsInProgress() }">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            %= form_for 'finne_intro', data => { bind => 'submit: newGame' }, begin
+                <div class="modal-header">
+                    <h4>New game</h4>
+                </div>
+                <div class="modal-body">
+                    <div data-bind="visible: server.connectionOpen">Yes!</div>
+                    <div>
+                        %= formgroup 'Your name', text_field => ['name']
+                        %= formgroup 'Game code', text_field => ['unused', 'abcde', disabled => 'disabled']
+                        %= formgroup 'Enter game code', text_field => ['gamecode', 'abcde']
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    %= submit_button 'Start playing', primary
+                    %= button 'Clear games', data => { bind => 'click: clearAllGames' }, ':danger'
+                </div>
+            % end
+        </div>
+    </div>
+</div>
+

@@ -2,7 +2,7 @@
 doctype: dist
 
 header:
-  name: App-PongMania
+  name: App-GameMania
   author:
     - Erik Carlsson <info@code301.com>
   license: Perl_5

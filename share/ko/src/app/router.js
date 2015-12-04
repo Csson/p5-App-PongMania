@@ -37,6 +37,7 @@ var routerInstance = new Router({
         { url: 'about',     params: { page: 'about-page' } },
         { url: 'pong',      params: { page: 'pong' } },
         { url: 'tetris',    params: { page: 'tetris' } },
+        { url: 'finne',     params: { page: 'finne' } },
     ]
 });
 

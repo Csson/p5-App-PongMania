@@ -1,0 +1,39 @@
+#finne-page #chat {
+    position: absolute;
+    top: 0px;
+    bottom: 30px;
+    right: 0px;
+
+    width: 200px;
+    background-color: #ccc;
+}
+#finne-page #chat ul {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    width: 200px;
+    bottom: 40px;
+    background-color: #333;
+    overflow-y: auto;
+}
+#finne-page #chat form {
+    position: absolute;
+    right: 0px;
+    bottom: 0px;
+    width: 200px;
+}
+#finne-page .chat-status-server-info {
+    color: #138e05;
+    font-weight: bold;
+}
+#finne-page .chat-status-server-warning {
+    color: #d31c08;
+    font-weight: bold;
+}
+#finne-page .chat-status-self-normal {
+    color: #ccc;
+    font-style: italic;
+}
+#finne-page .chat-status-other-normal {
+    color: #eee;
+}

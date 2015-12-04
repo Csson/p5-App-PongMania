@@ -17,6 +17,10 @@ ko.components.register('pong', { require: 'components/pong/pong' });
 
 ko.components.register('tetris', { require: 'components/tetris/tetris' });
 
+ko.components.register('finne', { require: 'components/finne/finne' });
+
+ko.components.register('chat', { require: 'components/chat/chat' });
+
 // [Scaffolded component registrations will be inserted here. To retain this feature, don't remove this comment.]
 
 // Start the application
