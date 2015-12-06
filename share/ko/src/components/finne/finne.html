@@ -13,7 +13,7 @@
     </div>
 </div>
 
-
+<%#
 <div id="finne-intro" class="modal" data-bind="modalVisible: function() { return !gameIsInProgress() }">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -22,7 +22,6 @@
                     <h4>New game</h4>
                 </div>
                 <div class="modal-body">
-                    <div data-bind="visible: server.connectionOpen">Yes!</div>
                     <div>
                         %= formgroup 'Your name', text_field => ['name']
                         %= formgroup 'Game code', text_field => ['unused', 'abcde', disabled => 'disabled']
@@ -31,10 +30,11 @@
                 </div>
                 <div class="modal-footer">
                     %= submit_button 'Start playing', primary
-                    %= button 'Clear games', data => { bind => 'click: clearAllGames' }, ':danger'
+                    %= button 'Clear games', data => { bind => 'click: clearAllGames' }, danger
                 </div>
             % end
         </div>
     </div>
 </div>
 
+%>
