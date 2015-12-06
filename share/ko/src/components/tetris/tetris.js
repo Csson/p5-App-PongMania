@@ -4,6 +4,7 @@ import { TetrisBlock } from './block';
 
 class Tetris {
     constructor(params) {
+        this.debug = false;
         var $gameArea = $('#tetris-page canvas');
         $gameArea[0].width = window.innerWidth;
         $gameArea[0].height = window.innerHeight;
@@ -60,26 +61,58 @@ class Tetris {
         this.gameIsOver = ko.observable(false);
         this.gameIsCompleted = ko.observable(false);
         this.anyKeyToStart = ko.observable(true);
+        this.formerStates = [];  // debug tool
+        this.formerStatesIndex = 0;
         this.resetGame();
 
         $(document).keydown((e) => {
-              if(this.gameIsRunning()) {
+            if(this.gameIsRunning()) {
                 if(e.which === 38)      { this.activeBlock().rotate(this.allOccupiedSquares())        }
                 else if(e.which === 37) { this.activeBlock().move('left', this.allOccupiedSquares())  }
                 else if(e.which === 39) { this.activeBlock().move('right', this.allOccupiedSquares()) }
                 else if(e.which === 40) { this.activeBlockMoveDown()                                  }
                 else if(e.which === 32) { this.activeBlockDrop()                                      }
+                this.formerStates.push({ score: this.score(), heapBlocks: this.copyArray(this.heapBlocks), block: this.copyArray(this.blocks[0])});
             }
-            if(e.which === 80) { this.paused(!this.paused()) }
+            if(e.which === 80) { this.paused(!this.paused()); this.formerStatesIndex = this.formerStates.length - 1; }
             if(this.anyKeyToStart()) { this.anyKeyToStart(false) }
             if((this.gameIsOver() || this.gameIsCompleted()) && (e.which === 13)) {
                 this.resetGame();
+            }
+            if(this.paused()) {
+                if(e.which === 88 || e.which === 90) {
+                    console.log(this.formerStates);
+                    // z
+                    if(e.which === 90) {
+                        this.formerStatesIndex = this.formerStatesIndex - 1 < 0 ? this.formerStates.length - 1 : this.formerStatesIndex - 1;
+                    }
+                    // x
+                    else if(e.which === 88) {
+                        this.formerStatesIndex = this.formerStatesIndex + 1 == this.formerStates.length ? 0 : this.formerStatesIndex + 1;
+                    }
+                    var state = this.copyArray(this.formerStates[this.formerStatesIndex]);
+                    console.log(state);
+                    this.heapBlocks = [];
+                    for (var i = 0; i < state.heapBlocks.length; i++) {
+                         this.heapBlocks[i] = new TetrisBlock(this.copyArray(state.heapBlocks[i]));
+                         this.heapBlocks[i].ctx = this.ctx;
+                    }
+                    this.score(state.score);
+                    this.blocks[0] = new TetrisBlock(this.copyArray(state.block));
+                    this.blocks[0].ctx = this.ctx;
+                    this.drawArea();
+                    this.draw();
+                }
             }
         });
         this.run();
 
     }
-
+    saveDebugData() {
+        if(this.debug) {
+            this.formerStates.push({ score: this.score(), heapBlocks: this.copyArray(this.heapBlocks), block: this.copyArray(this.blocks[0])});
+        }
+    }
     resetGame() {
         this.heapBlocks = [];
         this.blocks = this.getBagOfBlocks();
@@ -185,13 +218,20 @@ class Tetris {
     }
     giveScoreForClearedRows(numberOfRows) {
         var groundScoreForNumberOfRows = {
-            0:    0,
-            1:   40,
-            2:  100,
-            3:  300,
-            4: 1200,
+            0:      0,
+            1:     40,
+            2:    100,
+            3:    300,
+            4:   1200,
+            5:   5000,
+            6:  15000,
+            7:  30000,
+            8:  80000,
+            9: 100000,
+           10: 500000,
         };
-        this.score(this.score() + groundScoreForNumberOfRows[numberOfRows] * this.level());
+        var scoreForCleared = this.level() <= 10 ? groundScoreForNumberOfRows[numberOfRows] * this.level() : 1000000;
+        this.score(this.score() + scoreForCleared);
         this.completedRows(this.completedRows() + numberOfRows);
         this.maybeIncreaseLevel();
 
@@ -208,13 +248,15 @@ class Tetris {
 
     maybeTakeStep() {
         ++this.loopsSinceStep;
+        var ableToMove = false;
         if(this.loopsSinceStep > this.loopsPerStep) {
             this.loopsSinceStep = 0;
-            var ableToMove = this.activeBlock().move('down', this.allOccupiedSquares());
+            ableToMove = this.activeBlock().move('down', this.allOccupiedSquares());
             if(!ableToMove) {
                 this.doneWithBlock();
             }
         }
+        return ableToMove;
     }
     checkForCompletedRows() {
         var completedRows = [];
@@ -277,7 +319,9 @@ class Tetris {
             this.hadCompletedRowsOnLastUpdate = false;
         }
         else {
-            this.maybeTakeStep();
+            if(this.maybeTakeStep()) {
+                this.saveDebugData();
+            }
         }
         this.draw();
 
@@ -289,7 +333,9 @@ class Tetris {
                 break HADCOMPLETED;
             }
             totalCompletedRows += completedRows;
+            this.saveDebugData();
             this.dropAfterCompleted();
+            this.saveDebugData();
         }
         if(totalCompletedRows) {
             this.giveScoreForClearedRows(totalCompletedRows);
@@ -304,7 +350,6 @@ class Tetris {
         }
 
         var nextBlock = this.blocks[1];
-        console.log(nextBlock);
 
         var displayedNextBlock = new TetrisBlock({
             type: nextBlock.type,
@@ -314,7 +359,6 @@ class Tetris {
             ctx: this.ctx,
             area: this.nextBlockArea,
         });
-        console.log(displayedNextBlock);
         displayedNextBlock.draw();
     }
     dropAfterCompleted() {

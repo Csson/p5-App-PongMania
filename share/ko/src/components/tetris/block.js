@@ -9,7 +9,7 @@ export class TetrisBlock {
         this.unitSize = params.unitSize;
         this.ctx = params.ctx;
         this.originSquare = params.originSquare; // { x: ?, y: ? }
-        this.occupies = this.getOccupation(this.rotation);
+        this.occupies = params.occupies || this.getOccupation(this.rotation); // set when debugging
     }
     clone() {
         var clone = new TetrisBlock(Object.assign({}, this));
@@ -142,13 +142,14 @@ export class TetrisBlock {
         this.ctx.fillStyle = this.color.main;
         this.occupies.map( (occupiedSquare) => {
             if(this.isWithinArea(occupiedSquare)) {
-                var topX = 0.5 + this.area.left + (occupiedSquare.x - 1) * this.unitSize;
-                var topY = 0.5 + this.area.top + (occupiedSquare.y - 1) * this.unitSize;
+                var lineWidth = Math.floor(this.unitSize / 15);
+                var topX = lineWidth / 2 + this.area.left + (occupiedSquare.x - 1) * this.unitSize;
+                var topY = lineWidth / 2 + this.area.top + (occupiedSquare.y - 1) * this.unitSize;
                 this.ctx.fillRect(topX, topY, this.unitSize - 1, this.unitSize - 1);
-                this.drawLine(1, this.color.lighter, topX, topY, this.unitSize - 1, 0);
-                this.drawLine(1, this.color.lighter, topX, topY, 0, this.unitSize - 1);
-                this.drawLine(1, this.color.darker, topX, topY + this.unitSize - 1, this.unitSize - 1, 0);
-                this.drawLine(1, this.color.darker, topX + this.unitSize - 1, topY, 0, this.unitSize - 1);
+                this.drawLine(lineWidth, this.color.lighter, topX, topY, this.unitSize - lineWidth, 0);
+                this.drawLine(lineWidth, this.color.lighter, topX, topY, 0, this.unitSize - lineWidth);
+                this.drawLine(lineWidth, this.color.darker, topX, topY + this.unitSize - lineWidth, this.unitSize - lineWidth, 0);
+                this.drawLine(lineWidth, this.color.darker, topX + this.unitSize - lineWidth, topY, 0, this.unitSize - lineWidth);
             }
         });
 
