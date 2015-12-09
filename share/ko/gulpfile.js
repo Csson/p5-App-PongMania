@@ -21,20 +21,26 @@ var requireJsRuntimeConfig = vm.runInNewContext(fs.readFileSync(source + '/app/r
         include: [
             'requireLib',
             'components/navbar/navbar',
-            'components/home-page/home',
-           // 'components/redis/table'
-            
+            'components/home-page/home'
         ],
         insertRequire: ['app/startup'],
         bundles: {
             pong: ['components/pong/pong'],
             tetris: ['components/tetris/tetris', 'components/tetris/block'],
-            finne: ['components/finne/finne', 'components/finne/communicator', 'components/chat/chat'],
-            //about: ['text!components/about-page/about.html']
-            // If you want parts of the site to load on demand, remove them from the 'include' list
-            // above, and group them into bundles here.
-            // 'bundle-name': [ 'some/module', 'another/module' ],
-            // 'another-bundle-name': [ 'yet-another-module' ]
+            finne: ['components/finne/finne',
+                    'components/finne/communicator',
+                    'lib/misc/card',
+                    'lib/misc/card-generator',
+                    'lib/misc/group-of-cards',
+                    'lib/misc/group-of-cards.hand',
+                    'lib/misc/group-of-cards.stack',
+                    'lib/misc/group-of-cards.pyramid',
+                    'lib/misc/chat',
+                    'lib/misc/transform',
+                    'lib/misc/scene',
+                    'lib/misc/area-handler',
+                    'lib/misc/utilities',
+            ],
         }
     }),
     transpilationConfig = {
@@ -42,7 +48,8 @@ var requireJsRuntimeConfig = vm.runInNewContext(fs.readFileSync(source + '/app/r
         skip: ['bower_modules/**', 'app/require.config.js'],
         babelConfig: {
             modules: 'amd',
-            sourceMaps: 'inline'
+            sourceMaps: 'inline',
+            //optional: ['runtime']
         }
     },
     babelIgnoreRegexes = transpilationConfig.skip.map(function(item) {

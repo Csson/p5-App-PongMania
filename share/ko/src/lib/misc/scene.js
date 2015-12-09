@@ -2,7 +2,8 @@ import { Transform } from './transform';
 
 export class Scene {
     constructor(params) {
-        this.ctx = params.ctx;
+        this.canvas = params.canvas;
+        this.ctx = this.canvas.getContext('2d');
         this.image = null;
         this.transformer = null;
     }
@@ -85,15 +86,6 @@ export class Scene {
         var bottomRight = corners[2];
         var topRight = corners[3];
 
-        if(!this.objectIsEmpty(options.shadow) && !options.strike) {
-            topLeft.x -= 5000;
-            bottomLeft.x -= 5000;
-            bottomRight.x -= 5000;
-            topRight.x -= 5000;
-            this.ctx.shadowOffsetX = 5000;
-            options.strike = true;
-        }
-
         if(!this.objectIsEmpty(options.shadow)) {
             if(options.shadow.color) {
                 this.ctx.shadowColor = options.shadow.color;
@@ -118,10 +110,17 @@ export class Scene {
         this.ctx.quadraticCurveTo(topLeft.x, topLeft.y, topLeft.x + radius.tr, topLeft.y);
         
         this.ctx.closePath();
-        if(options.fill) {
+
+        if(options.fill || options.fillColor) {
+            if(options.fillColor) {
+                this.ctx.fillStyle = options.fillColor;
+            }
             this.ctx.fill();
         }
-        if(options.strike) {
+        if(options.strike || options.color) {
+            if(options.color) {
+                this.ctx.strokeStyle = options.color;
+            }
             this.ctx.lineWidth = options.lineWidth;
             this.ctx.stroke();
         }

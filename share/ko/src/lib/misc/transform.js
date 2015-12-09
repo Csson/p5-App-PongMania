@@ -69,6 +69,6 @@ export class Transform {
         var y = py;
         px = x * this.m[0] + y * this.m[2] + this.m[4];
         py = x * this.m[1] + y * this.m[3] + this.m[5];
-        return [px, py];
+        return { x: px, y: py };
     }
 }
