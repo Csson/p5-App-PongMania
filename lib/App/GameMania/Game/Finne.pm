@@ -22,6 +22,7 @@ package App::GameMania::Game::Finne {
         traits => ['Array'],
         default => sub { [ ] },
         handles => {
+            all_players => 'elements',
             find_player => 'first',
             count_players => 'count',
             filter_players => 'grep',
@@ -57,6 +58,37 @@ package App::GameMania::Game::Finne {
             )
         );
     }
+
+    # deal cards when both players have joined
+    after add_player => sub ($self, @args) {
+        if($self->count_players == 2) {
+            ROW:            
+            for my $row (0..4) {
+                my $status = $row % 2 == 0 ? 'hidden' : 'public';
+
+                CARD:
+                for my $hidden (1..$row + 1) {
+
+                    PLAYER:
+                    for my $player ($self->all_players) {
+                        my $card = $self->stack->remove_card;
+                        $card->status($status);
+                        push $player->get_row_on_table($row)->@* => $card;
+                    }
+                }
+            }
+            CARDS_ON_HAND:
+            for my $i (1..3) {
+
+                PLAYER:
+                for my $player ($self->all_players) {
+                    my $card = $self->stack->remove_card;
+                    $card->status('private');
+                    $player->cards_on_hand->add_card($card);
+                }
+            }
+        }
+    };
 
     sub other_players($self, $transaction) {
           return $self->filter_players(sub { $_->transaction_string ne sprintf '%s', $transaction });

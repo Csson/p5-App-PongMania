@@ -5,13 +5,13 @@ use warnings;
 package App::GameMania::Misc::Card {
 
     use Moose;
+    with 'App::GameMania::Jsonifier';
     use MooseX::AttributeShortcuts;
     use Types::Standard -types;
     use experimental qw/postderef signatures/;
 
     sub json_attributes { qw/suit value status/ };
 
-    with 'App::GameMania::Jsonifier';
 
     has suit => (
         is => 'ro',

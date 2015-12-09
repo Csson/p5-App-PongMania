@@ -32,7 +32,6 @@ package App::GameMania::Misc::StackOfCards {
             }
         }
         $self->cards([shuffle @cards]);
-        warn 'card count: ' . $self->count_cards;
         return $self;
     }
 }

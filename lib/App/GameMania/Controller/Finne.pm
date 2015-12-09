@@ -74,38 +74,10 @@ package App::GameMania::Controller::Finne {
             my $second_player = $game->get_player(1);
             $first_player->send('chat', message => 'You have been challenged by ' . $second_player->name, from => 'server');
             $second_player->send('chat', message => 'You have challenged ' . $first_player->name, from => 'server');
-            my @players = ($first_player, $second_player);
 
-            ROW:            
-            for my $row (0..4) {
-                my $status = $row % 2 == 0 ? 'hidden' : 'public';
-
-                CARD:
-                for my $hidden (1..$row + 1) {
-
-                    PLAYER:
-                    for my $player (@players) {
-                        my $card = $game->stack->remove_card;
-                        $card->status($status);
-                        push $player->get_row_on_table($row)->@* => $card;
-                    }
-                }
-            }
-            CARDS_ON_HAND:
-            for my $i (1..3) {
-
-                PLAYER:
-                for my $player (@players) {
-                    my $card = $game->stack->remove_card;
-                    $card->status('private');
-                    $player->cards_on_hand->add_card($card);
-                }
-            }
-
-            for my $player ($first_player, $second_player) {
+            for my $player ($game->all_players) {
                 $player->send('init_game', player => $player->to_json);
             }
-
         }
     }
 
