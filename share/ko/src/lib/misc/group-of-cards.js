@@ -22,7 +22,6 @@ export class GroupOfCards {
 
         this.recalculateCardResizer();
     }
-
     hasCard(suit, value) {
         var hasIt = false;
         this.cards.map((card) => { if(card.suit === suit && card.value === value) { hasIt = true; } });
@@ -56,25 +55,12 @@ export class GroupOfCards {
         if(sortBy === 'suit') {
             this.cards.sort((a, b) => a.suitSortable.localeCompare(b.suitSortable));
         }
+        else if(sortBy === 'value') {
+            this.cards.sort((a, b) => a.valueSortable.localeCompare(b.valueSortable));
+        }
     }
-    markAnyCardHover(position) {
-        this.cards.map((card) => card.wasHovering = false);
-        for (var i = this.cards.length - 1; i >= 0; i -= 1) {
-            var card = this.cards[i];
+    markHoverable(position) { console.log('group-of-cards/markHoverable', 'Implement in sub class.') }
 
-            if(card.isHover(position)) {
-                card.wasHovering = true;
-                return;
-            }
-        };
-    }
-    markTopCardHover(position) {
-        var topCard = this.cards[this.cards.length - 1];
-        topCard.wasHovering = topCard.wasHovering && !topCard.isHover(position) ? false
-                            :  topCard.isHover(position)                        ? true
-                            :                                                     false
-                            ;
-    }
     moveHoveredOnto(anotherGroupOfCards, doWithCard) {
         var hoveredIndex;
         for (var i = 0; i < this.cards.length; i += 1) {
@@ -99,7 +85,51 @@ export class GroupOfCards {
         }
         return false;
     }
+    moveCardOnto(suit, value, anotherGroupOfCards, doWithCard) {
+        var wantedIndex;
+        for (var i = 0; i < this.cards.length; i += 1) {
+            if(this.cards[i].suit === suit && this.cards[i].value === value) {
+                wantedIndex = i;
+                break;
+            }
+        }
+        if(wantedIndex !== undefined) {
+            var movedCard = (this.cards.splice(wantedIndex, 1))[0];
+            var newCard = anotherGroupOfCards.addCard(movedCard.suit, movedCard.value);
+          //  newCard.move = copyArray(movedCard.move);
+            this.recalculateCardResizer();
+            this.rerandomizeAllCards();
+        console.log(typeof doWithCard);
+            if(typeof doWithCard === 'function') {
+                console.log('running dowith');
+                newCard.location = copyArray(movedCard.location);
+                doWithCard(newCard);
+            }
+            console.log('new card', newCard, '|',  movedCard);
+            return true;
+        }
+        return false;
+    }
+    dealTopCardOnto(anotherGroupOfCards, doWithCard, suit, value) {
+        var dealtCard = this.cards.pop();
+        var newCard = anotherGroupOfCards.addCard
+    }
     rerandomizeAllCards() {
         this.cards. map((card) => card.rerandomize());
+    }
+    replacePrivateCard(newCards = []) {
+        for (var i = 0; i < newCards.length; i += 1) {
+            var oldCard = this.cards.pop();
+            var newCard = this.addCard(newCards[i].suit, newCards[i].value);
+            newCard.location = copyArray(oldCard.location);
+        }
+    }
+    replaceAllPublicCards(backColor) {
+        var howMany = this.cards.length - 1;
+        for (var i = 0; i <= howMany; i += 1) {
+            var oldCard = this.cards.shift();
+            var newCard = this.addCard('back', backColor);
+            newCard.location = copyArray(oldCard.location);
+        }
     }
 }

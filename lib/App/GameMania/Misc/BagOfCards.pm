@@ -13,7 +13,7 @@ package App::GameMania::Misc::BagOfCards {
 
     sub json_attributes { qw/cards/ };
 
-    with 'App::GameMania::Jsonifier';
+    with qw/App::GameMania::Jsonifier/;
 
     has cards => (
         is => 'rw',
@@ -24,11 +24,46 @@ package App::GameMania::Misc::BagOfCards {
             all_cards => 'elements',
             sort_cards => 'sort',
             find_card => 'first',
+            filter_cards => 'grep',
             remove_card => 'delete',
             add_card => 'push',
+            count_cards => 'count',
+            map_cards => 'map',
+            get_card => 'get',
         },
     );
+    has censor => (
+        is => 'ro',
+        isa => InstanceOf['App::GameMania::Censor'],
+        required => 1,
+    );
 
+    sub compare_cards($self, $other_cards) {
+        my $my_lowest_value = 15;
+        for my $card ($self->all_cards) {
+            warn '> ' . $card->value . ' -> ' . $card->numeric_value;
+            warn $card->numeric_value < $my_lowest_value ? 'yes lower' : 'no';
+            if($card->numeric_value < $my_lowest_value) {
+                $my_lowest_value = $card->numeric_value;
+            }
+        }
+        my $other_cards_lowest_value = 15;
+        for my $card ($other_cards->all_cards) {
+
+            if($card->numeric_value < $other_cards_lowest_value ) {
+                $other_cards_lowest_value = $card->numeric_value;
+            }
+        }
+        warn "lowest value, my: <$my_lowest_value>, opponent: <$other_cards_lowest_value>";
+        return $my_lowest_value < $other_cards_lowest_value  ? -1
+             : $my_lowest_value > $other_cards_lowest_value  ?  1
+             :                                                  0
+             ;
+    }
+
+    sub remove($self, $card) {
+        $self->cards([ $self->filter_cards(sub { $_->suit_and_value ne $card->suit_and_value }) ]);
+    }
     
 }
 

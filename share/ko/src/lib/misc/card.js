@@ -10,8 +10,9 @@ export class Card {
         this.scene = params.scene;
 
         var suitSortable = { clubs: 1, diamonds: 2, spades: 3, hearts: 4, back: 5, joker: 6 };
-        var valueSortable = { '10': 10, jack: 11, queen: 12, king: 13, ace: 14 };
+        var valueSortable = { '2': 15, '10': 16, jack: 11, queen: 12, king: 13, ace: 14, blue: 1, red: 1 };
         this.suitSortable = suitSortable[this.suit] + '_' + (valueSortable[this.value] || '0' + this.value);
+        this.valueSortable = (valueSortable[this.value] || '0' + this.value) + '_' + this.suit;
 
         this.originalDrawParams = {
             baseRotation: params.drawParams.baseRotation,
@@ -22,7 +23,7 @@ export class Card {
         this.originalDrawParams.centerFuzzynessSetting = this.randomizeCenter(this.originalDrawParams.centerFuzzyness);
 
         this.location = null;
-        this.move = null;
+        this.move = undefined;
         this.drawnCorners = [];
         this.wasHovering = false;
     }
@@ -39,15 +40,22 @@ export class Card {
             toPosition: params.toPosition,
             fromPosition: this.location !== null ? this.location : { x: - 500, y: -500 },
         };
+        let xDistance = this.move.toPosition.x - this.move.fromPosition.x;
+        let xDistancePerStep = xDistance / this.move.steps;
+        let yDistance = this.move.toPosition.y - this.move.fromPosition.y;
+        let yDistancePerStep = yDistance / this.move.steps;
+
+        this.move.xDistancePerStep = xDistancePerStep;
+        this.move.yDistancePerStep = yDistancePerStep;
         console.log('move steps', params.steps, '>', this.move.steps);
         console.log('set move', this.move, '|', this.move.steps, this);
     }
     hasMove() {
-        if(this.move === null) {
+        if(this.move === undefined) {
             return false;
         }
         if(!this.move.stepsRemaining) {
-            this.move = null;
+            this.move = undefined;
             return false;
         }
         return true;
@@ -70,7 +78,7 @@ export class Card {
     randomizeCenter(centerFuzzyness = 0) {
         return {
             radiusAmount: centerFuzzyness * Math.sqrt(Math.random(1)) / 2,
-            angle: Math.sqrt(2 * Math.PI),
+            angle: Math.random() * Math.sqrt(2 * Math.PI),
         };
     }
     shortestDimension() {
@@ -82,14 +90,9 @@ export class Card {
         var resizer = params.resizer;
 
         if(this.hasMove()) {
-            let xDistance = this.move.toPosition.x - this.move.fromPosition.x;
-            let xDistancePerStep = xDistance / this.move.steps;
-            let yDistance = this.move.toPosition.y - this.move.fromPosition.y;
-            let yDistancePerStep = yDistance / this.move.steps;
-
-            x = this.move.toPosition.x - xDistancePerStep * this.move.stepsRemaining;
-            y = this.move.toPosition.y - yDistancePerStep * this.move.stepsRemaining;
-            console.log('moving', x, y, '|', this, this.move);
+            x = Math.round(this.move.toPosition.x - this.move.xDistancePerStep * this.move.stepsRemaining);
+            y = Math.round(this.move.toPosition.y - this.move.yDistancePerStep * this.move.stepsRemaining);
+            console.log('move to', x, y);
             this.move.stepsRemaining--;
         }
         else if(this.location != null) {
@@ -105,14 +108,14 @@ export class Card {
             centerFuzzyness = this.randomizeCenter(params.centerFuzzyness) * this.shortestDimension();
             var fuzzyRadius = this.shortestDimension() * centerFuzzyness / 2;
             var radius = fuzzyRadius * Math.sqrt(Math.random(1));
-            var angle = Math.sqrt(2 * Math.PI);
+            var angle = Math.random() * Math.sqrt(2 * Math.PI);
 
             x = x + radius * Math.cos(angle);
             y = y + radius * Math.sin(angle);
         }
         else {
             var radius = this.originalDrawParams.centerFuzzynessSetting.radiusAmount * this.shortestDimension();
-            var angle = Math.sqrt(2 * Math.PI);
+            var angle = this.originalDrawParams.centerFuzzynessSetting.angle;
 
             x = x + radius * Math.cos(angle);
             y = y + radius * Math.sin(angle);

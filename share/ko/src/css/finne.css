@@ -44,6 +44,10 @@
     color: #d31c08;
     font-weight: bold;
 }
+#finne-page .chat-status-server-play {
+    color: #efef55;
+    font-style: italic;
+}
 #finne-page .chat-status-self-normal {
     color: #ccc;
     font-style: italic;

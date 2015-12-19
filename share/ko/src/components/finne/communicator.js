@@ -46,6 +46,14 @@ export class Communicator {
         }
         return success;
     }
+    makePlay(params) {
+        console.log('make play', params);
+        this.sendCommand('make_play', params);
+    }
+    checkPyramidPlay(params) {
+        console.log('check pyramid play', params);
+        this.sendCommand('check_pyramid_play', params);
+    }
 
 
     dispose() {

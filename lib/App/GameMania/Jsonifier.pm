@@ -22,6 +22,15 @@ package App::GameMania::Jsonifier {
                     if($thing->$_can('to_json')) {
                         push @$this_value => $thing->to_json;
                     }
+                    elsif(ref $thing eq 'ARRAY') {
+                        my $nested_value = [];
+                        for my $also_thing(@$thing) {
+                            if($also_thing->$_can('to_json')) {
+                                push @$nested_value => $also_thing->to_json;
+                            }
+                        }
+                        push @$this_value => $nested_value;
+                    }
                     else {
                         push @$this_value => $thing;
                     }

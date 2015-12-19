@@ -13,7 +13,7 @@
     </div>
 </div>
 
-<%#
+
 <div id="finne-intro" class="modal" data-bind="modalVisible: function() { return !gameIsInProgress() }">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -23,7 +23,7 @@
                 </div>
                 <div class="modal-body">
                     <div>
-                        %= formgroup 'Your name', text_field => ['name']
+                        %= formgroup 'Your name', text_field => ['name', data => { bind => 'value: possibleName' } ]
                         %= formgroup 'Game code', text_field => ['unused', 'abcde', disabled => 'disabled']
                         %= formgroup 'Enter game code', text_field => ['gamecode', 'abcde']
                     </div>
@@ -37,4 +37,34 @@
     </div>
 </div>
 
-%>
+<div id="finne-card-choices" class="modal" data-bind="modalVisible: function() { return popupCardChoices().length }">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            %= form_for '#', data => { bind => 'submit: popupMakeMove' }, begin
+                <div class="modal-header">
+                    <h4>Choices</h4>
+                </div>
+                <div class="modal-body">
+                    <h4>Choose cards to play</h4>
+                    <div class="btn-group-vertical" data-toggle="buttons" data-bind="foreach: popupCardChoices">
+                        <label class="btn btn-primary">
+                            <input type="checkbox" autocomplete="off" class="card-choices" name="card-choices" data-bind="value: suit" />
+                            <span data-bind="text: value"></span> of <span data-bind="text: suit">
+                        </label>
+                    </div>
+                    <h4>Choose card destination</h4>
+                    <div class="btn-group-vertical" data-toggle="buttons" data-bind="foreach: popupCardDestinations">
+                        <label class="btn btn-primary">
+                            <input type="radio" autocomplete="off" class="card-destination" name="card-destination" data-bind="value: to" />
+                            <span data-bind="text: to"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    %= submit_button 'Start playing', primary
+                    %= button 'Cancel move', class => 'closer', data => { dismiss => 'modal' }, danger
+                </div>
+            % end
+        </div>
+    </div>
+</div>
