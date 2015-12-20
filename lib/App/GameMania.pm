@@ -75,16 +75,16 @@ package App::GameMania {
 #        }
 
         # add static directory
-        if(path(qw/share public/)->exists) {
+#        if(path(qw/share public/)->exists) {
             $self->static->paths([path(qw/share public/)->realpath]);
-        }
-        else {
-            my $public_dir = path(dist_dir('App-PongMania'))->child('public');
-
-            if($public_dir->is_dir) {
-                $self->static->paths([$public_dir->realpath]);
-            }
-        }
+#        }
+#        else {
+#            my $public_dir = path(dist_dir('App-PongMania'))->child('public');
+#
+#            if($public_dir->is_dir) {
+#                $self->static->paths([$public_dir->realpath]);
+#            }
+#        }
 
     }
 }

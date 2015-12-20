@@ -4,7 +4,7 @@ export class Communicator {
     constructor(params) {
         var wsUrl = $('#finne-page').attr('data-ws-url');
         this.chat = params.chat;
-        this.endpoint = new WebSocket('ws://localhost:3002/finne/ws');
+        this.endpoint = new WebSocket('ws://games.erikcarlsson.com/finne/ws');
         this.connectionOpen = ko.observable(false);
         this.handleIncoming = params.handleIncoming,
         this.endpoint.onopen = () => {
