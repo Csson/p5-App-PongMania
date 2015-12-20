@@ -169,16 +169,16 @@ warn "pile_to_discard: <$pile_to_discard>";
             }
             return if !scalar @$played_cards;
 
-            $game->add_play({
+            $game->add_act(
                 signature => $player->signature,
-                from => 'hand',
-                to => $destination,
-                cards => [map { { suit => $_->suit, value => $_->value, numeric_value => $_->numeric_value } } @$played_cards],
-            });
+                origin => 'hand',
+                destination => $destination,
+                cards => $played_cards,
+            );
 
             for my $card (@$played_cards) {
                 if($destination eq 'pile') {
-                    $game->pile->add_card(App::GameMania::Misc::Card->new(suit => $card->suit, value => $card->value));
+                    $game->pile->add_card($card);
                 }
             }
 
@@ -227,12 +227,12 @@ warn "pile_to_discard: <$pile_to_discard>";
             $card->status('public');
             $game->pile->add_card($card);
 
-            $game->add_play({
+            $game->add_act(
                 signature => $player->signature,
-                from => 'stack',
-                to => 'pile',
-                cards => [{ suit => $card->suit, value => $card->value, numeric_value => $card->numeric_value }],
-            });
+                origin => 'stack',
+                destination => 'pile',
+                cards => [$card],
+            );
             $game->send('chat',
                 message => $player->name . ' played ' . $card->value . ' of ' . $card->suit,
                 status => 'play',
@@ -309,6 +309,7 @@ warn "pile_to_discard: <$pile_to_discard>";
                 );
             }
             elsif($destination eq 'pile') {
+                $game->pile->add_card(@cards);
                 $game->send('chat',
                     message => $player->name . ' played ' . $cards[0]{'value'} . ' of ' . join (', ' => map { $_->suit } @cards),
                     status => 'play',
@@ -316,14 +317,13 @@ warn "pile_to_discard: <$pile_to_discard>";
                 );
             }
 
-            if(jany(qw/pile discarded/) eq $destination) {
-                $game->add_play({
-                    signature => $player->signature,
-                    from => 'pyramid',
-                    to => $destination,
-                    cards => [map { { suit => $_->suit, value => $_->value, numeric_value => $_->numeric_value } } @cards],
-                });
-            }
+            $game->add_act(
+                signature => $player->signature,
+                origin => 'pyramid',
+                destination => $destination,
+                cards => \@cards,
+            );
+
             $player->send('move_card',
                 cards => [map { { suit => $_->suit, value => $_->value, numeric_value => $_->numeric_value } } @cards],
                 from => 'pyramid',
@@ -356,12 +356,12 @@ warn "pile_to_discard: <$pile_to_discard>";
             $player->cards_on_hand->add_card(@cards);
             $game->pile->cards([]);
 
-            $game->add_play({
+            $game->add_act(
                 signature => $player->signature,
-                from => 'pile',
-                to => 'hand',
-                cards => [map { { suit => $_->suit, value => $_->value, numeric_value => $_->numeric_value } } @cards],
-            });
+                origin => 'pile',
+                destination => 'hand',
+                cards => \@cards,
+            );
             $game->send('chat',
                 message => $player->name . ' picked up the pile',
                 status => 'play',
@@ -383,28 +383,29 @@ warn "pile_to_discard: <$pile_to_discard>";
         }
 
         if($pile_to_discard) {
-            $game->discarded->add_card($game->pile->all_cards);
+            my @cards = $game->pile->all_cards;
+            $game->discarded->add_card(@cards);
+            $game->pile->cards([]);
 
-            $game->add_play({
+            $game->add_act(
                 signature => $player->signature,
-                from => 'pile',
-                to => 'discarded',
-                cards => [map { { suit => $_->suit, value => $_->value, numeric_value => $_->numeric_value } } $game->pile->all_cards],
-            });
+                origin => 'pile',
+                destination => 'discarded',
+                cards => \@cards,
+            );
 
             $player->send('move_card',
-                cards => [map { { suit => 'back', value => $game->censor->back_color, numeric_value => 1 } } $game->pile->all_cards],
+                cards => [map { { suit => 'back', value => $game->censor->back_color, numeric_value => 1 } } @cards],
                 from => 'pile',
                 to => 'discarded',
                 allowed_plays => $game->possible_plays($player),
             );
             $other_player->send('move_card',
-                 cards => [map { { suit => 'back', value => $game->censor->back_color, numeric_value => 1 } } $game->pile->all_cards],
+                 cards => [map { { suit => 'back', value => $game->censor->back_color, numeric_value => 1 } } @cards],
                  from => 'pile',
                  to => 'discarded',
                  allowed_plays => $game->possible_plays($other_player),
             );
-            $game->pile->cards([]);
             $game->send('chat',
                 message => $player->name . ' cleans the pile',
                 status => 'play',

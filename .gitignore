@@ -12,3 +12,6 @@ share/ko/*/bower_modules/
 # Don't track build output
 share/ko/dist/
 share/ko/gsrc/
+
+# config
+app-game_mania.conf

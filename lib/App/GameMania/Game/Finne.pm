@@ -8,6 +8,7 @@ package App::GameMania::Game::Finne {
     use Types::Standard -types;
     use syntax 'junction' => { any => { -as => 'jany' }, none => { -as => 'jnone' } };
     use App::GameMania::Game::Finne::Player;
+    use App::GameMania::Game::Finne::Act;
     use App::GameMania::Misc::StackOfCards;
     use App::GameMania::Censor;
     use experimental qw/postderef signatures/;
@@ -55,15 +56,17 @@ package App::GameMania::Game::Finne {
         isa => InstanceOf['App::GameMania::Censor'],
         builder => 1,
     );
-    has plays => (
+    has acts => (
         is => 'ro',
-        isa => ArrayRef[HashRef],
+        isa => ArrayRef[InstanceOf['App::GameMania::Game::Finne::Act']],
         traits => ['Array'],
         default => sub { [ ] },
         handles => {
-            add_play => 'push',
-            get_play => 'get',
-            count_plays => 'count',
+            push_act => 'push',
+            get_act => 'get',
+            count_acts => 'count',
+            all_acts => 'elements',
+            filter_acts => 'grep',
         },
     );
 
@@ -88,6 +91,9 @@ package App::GameMania::Game::Finne {
 
     sub add_player($self, %params) {
         $self->push_player(App::GameMania::Game::Finne::Player->new(%params, censor => $self->censor));
+    }
+    sub add_act($self, %params) {
+        $self->push_act(App::GameMania::Game::Finne::Act->new(%params));
     }
 
     # deal cards when both players have joined
@@ -156,7 +162,7 @@ package App::GameMania::Game::Finne {
         my $opponents_pyramid_playable_cards = $self->playable_pyramid_cards_for($opponent);
 
         # first play
-        if(!$self->count_plays) {
+        if(!$self->count_acts) {
             if($player->is_starting_player) {
                 my @from_hand =  map {
                                     my $play = $_->to_json;
@@ -176,45 +182,32 @@ package App::GameMania::Game::Finne {
         #   && $self->get_play(-1)->{'from'} eq 'pile'
         #   && $self->get_play(-1)->{'to'} eq 'hand') {
         #}
-        # If someone must pick up the pile, then the other player can't do nothing - that's why there are two ifs
-        elsif($self->get_play(-1)->{'to'} eq 'pile'
-           && $self->pile->count_cards >= 2
+        # The player has played a too low card (after picking from stack or hidden card in pyramid) -> pick up the pile
+        elsif($self->count_current_acts_on_pile >= 2
            && jnone(2, 10) eq $self->pile->get_card(0)->value
+           && $self->last_pile_act->signature eq $player->signature
            && $self->pile->get_card(0)->numeric_value < $self->pile->get_card(1)->numeric_value
            && $self->pile->get_card(0)->numeric_value != $self->pile->get_card(-1)->numeric_value) {
-
-            if($self->get_play(-1)->{'signature'} eq $player->signature) {
                 $plays->{'pile'} = 1;
-            }
         }
-        # Haven't yet reach the pyramid, has cards on hand, and no card to play -> pick it up.
-        elsif($self->get_play(-1)->{'to'} eq 'pile'
-           && $self->pile->count_cards >= 2
-           && jnone(2, 10) eq $self->pile->get_card(0)->value
-           && $self->get_play(-1)->{'signature'} ne $player->signature
-           && $player->cards_on_table->get_stack_at(4, 0)->count_cards
-           && $player->cards_on_hand->count_cards
-           && scalar $player->cards_on_hand->filter_cards(sub { $_->numeric_value >= $self->pile->get_card(0)->numeric_value }) == 0) {
-
-            $plays->{'pile'} = 1;
-        }
-
-
         # we are in hand-playing mode
         elsif($player->cards_on_hand->count_cards) {
-            my $last_play = $self->get_play(-1);
-            warn 'last play';
-            warn dumper $last_play;
-            my $last_play_value = scalar $last_play->{'cards'}->@* ? $last_play->{'cards'}[0]{'value'} : 0;
-            my $last_play_numeric_value = scalar $last_play->{'cards'}->@* ? $last_play->{'cards'}[0]{'numeric_value'} : 0;
+            my $last_act = $self->last_significant_act;
+            my $player_last_act = $self->player_last_act($player->signature);
+            warn 'last act';
+            warn dumper $last_act;
+            warn 'last player act';
+            warn dumper $player_last_act;
+            my $last_act_value = $last_act->has_cards ? $last_act->get_card(0)->value : 0;
+            my $last_act_numeric_value = $last_act->has_cards ? $last_act->get_card(0)->numeric_value : 0;
 
-            if($last_play->{'signature'} eq $player->signature) {
+            if($last_act->signature eq $player->signature) {
                 my @playable_cards_from_hand = ();
-                if(jany(2, 10) eq $last_play_value || $last_play->{'to'} eq 'discarded') {
+                if(jany(2, 10) eq $last_act_value || $last_act->destination eq 'discarded') {
                     @playable_cards_from_hand = $player->cards_on_hand->all_cards;
                 }
                 else {
-                    @playable_cards_from_hand = $player->cards_on_hand->filter_cards(sub { $_->value eq $last_play_value });
+                    @playable_cards_from_hand = $player->cards_on_hand->filter_cards(sub { $_->value eq $last_act_value });
                 }
                 $plays->{'hand'} =  [map {
                             my $play = $_->to_json;
@@ -225,14 +218,30 @@ package App::GameMania::Game::Finne {
             }
             else {
                 # if opponent has played a 2 or 10, or four-of-a-kind
-                if($last_play->{'to'} eq 'discarded' || (scalar $last_play->{'cards'}->@* && jany(2, 10) eq $last_play->{'cards'}[0]{'value'})) { }
-                elsif($last_play->{'to'} eq 'stack') {
+                if($last_act->destination eq 'discarded' || ($last_act->has_cards && jany(2, 10) eq $last_act->get_card(0)->value)) { }
+                # if player picked up a card from the pyramid, the player can only have one card on hand, and it needs to be played even if
+                # it is not good enough.
+                elsif($player_last_act && $player_last_act->origin eq 'pyramid' && $player_last_act->destination eq 'hand') {
+                    my $play = $player->cards_on_hand->get_card(0)->to_json;
+                    $play->{'to'} = ['pile'];
+                    $plays->{'hand'} = [ $play ];
+                }
+                # No card to play -> pick it up.
+                elsif($self->count_current_acts_on_pile
+                   && jnone(2, 10) eq $self->pile->get_card(0)->value
+                   && !$self->stack->count_cards
+                   && !scalar ($player->cards_on_hand->filter_cards(sub { $_->numeric_value >= $self->pile->get_card(0)->numeric_value }))
+                   && !scalar ($player->cards_on_hand->filter_cards(sub { $_->numeric_value == $self->pile->get_card(-1)->numeric_value }))) {
+
+                    $plays->{'pile'} = 1;
+                }
+                elsif($last_act->destination eq 'pile') {
                     $plays->{'hand'} =  [map {
                                             my $play = $_->to_json;
                                             $play->{'to'} = ['pile'];
                                             $play;
                                         } $player->cards_on_hand->filter_cards(sub {
-                                              $_->numeric_value >= $last_play_numeric_value
+                                              $_->numeric_value >= $last_act_numeric_value
                                               ||
                                               jany(2, 10) eq $_->value
                                               ||
@@ -255,14 +264,14 @@ package App::GameMania::Game::Finne {
         }
         # pyramids!
         else {
-            my $last_play = $self->get_play(-1);
-            warn 'last play ' . $player->signature;
-            warn dumper $last_play;
-            my $last_play_value = scalar $last_play->{'cards'}->@* ? $last_play->{'cards'}[0]{'value'} : 0;
-            my $last_play_numeric_value = scalar $last_play->{'cards'}->@* ? $last_play->{'cards'}[0]{'numeric_value'} : 0;
+            my $last_act = $self->last_significant_act;
+            warn 'last act by ' . $last_act->signature;
+            warn dumper $last_act;
+            my $last_act_value = $last_act->has_cards ? $last_act->get_card(0)->value : 0;
+            my $last_act_numeric_value = $last_act->has_cards ? $last_act->get_card(0)->numeric_value : 0;
 
-            if($last_play->{'signature'} eq $player->signature) {
-                if($last_play->{'to'} eq 'discarded' || (scalar $last_play->{'cards'}->@* && jany(2, 10) eq $last_play->{'cards'}[0]{'value'})) {
+            if($last_act->signature eq $player->signature) {
+                if($last_act->destination eq 'discarded' || ($last_act->has_cards && jany(2, 10) eq $last_act->get_card(0)->value)) {
                     map {
                         my $play = {};
                         if($_->{'status'} eq 'hidden') {
@@ -277,32 +286,42 @@ package App::GameMania::Game::Finne {
             }
             else {
                 # if opponent has played a 2 or 10
-                if($last_play->{'to'} eq 'discarded' || (scalar $last_play->{'cards'}->@* && jany(2, 10) eq $last_play->{'cards'}[0]{'value'})) {
+                if($last_act->destination eq 'discarded' || ($last_act->has_cards && jany(2, 10) eq $last_act->get_card(0)->value)) {
                     warn '-> pyramid. opponent played 2 or 10 or four-of-a-kind';
                 }
                 # opponent picked up pile
-                elsif(!scalar $last_play->{'cards'}) {
-                    warn '-> pyramid. opponent did not play cards';
-                    $plays->{'pyramid'} = [map {
-                                            my $play = $_->to_json; # this is bad!
-                                            $play->{'to'} = ['pile'];
-                                            $play;
-                                        } @$own_pyramid_playable_cards];
-                }
-                else {
-                    warn '-> pyramid. play on.';
-                    warn dumper $own_pyramid_playable_cards;
-
-                    # If we have any good playable card, then we can't play a worse card
-                    my $has_any_better_than_played_card = scalar (grep { $_->{'numeric_value'} >= $last_play_numeric_value } @$own_pyramid_playable_cards) ? 1 : 0;
-
+                elsif($last_act->origin eq 'pile' && $last_act->destination eq 'hand') {
+                    warn '-> pyramid. opponent picked up pile --';
                     map {
                         warn '--->';
                         warn dumper $_;
                         my $play = {};
-                      #  my $it = $_;
-                      #  my @own_pyramid_cards_same_value = grep { $it->{'value'} eq $_->{'value'} } @$own_pyramid_playable_cards;
-                      #  my @opponent_pyramid_cards_same_value = grep { $it->{'value'} eq $_->{'value'} } @$opponents_pyramid_playable_cards;
+
+                        if($_->{'status'} eq 'hidden') {
+                            $play->{'to'} = ['hand'];
+                        }
+                        else {
+                            $play->{'to'} = ['pile'];
+                        }
+                        $plays->{'pyramid'}[ $_->{'row_index'} ][ $_->{'card_index'} ] = $play;
+                    } @$own_pyramid_playable_cards;
+                }
+                else {
+                    warn '-> pyramid. play on. numeric value: ' . $last_act_numeric_value;
+                    warn dumper $own_pyramid_playable_cards;
+
+                    # If we have any good playable card, then we can't play a worse card
+                    my $has_any_better_than_played_card = scalar (grep { $_->{'numeric_value'} >= $last_act_numeric_value } @$own_pyramid_playable_cards)                 ? 1
+                                                        : scalar (grep { $_->{'numeric_value'} == $self->pile->get_card(-1)->numeric_value } @$own_pyramid_playable_cards) ? 1
+                                                        :                                                                                                                   0
+                                                        ;
+                    my $has_any_hidden_card = scalar (grep { $_->{'status'} eq 'hidden' } @$own_pyramid_playable_cards) ? 1 : 0;
+                    warn ' -> has any good?   ' . $has_any_better_than_played_card;
+                    warn ' -> has any hidden? ' . $has_any_hidden_card;
+                    map {
+                        warn '--->';
+                        warn dumper $_;
+                        my $play = {};
 
                         if($_->{'status'} eq 'hidden') {
                             $play->{'to'} = ['hand'];
@@ -310,7 +329,14 @@ package App::GameMania::Game::Finne {
                         # can't play a known worse card than possible
                         elsif($_->{'status'} ne 'hidden'
                            && $has_any_better_than_played_card
-                           && $_->{'numeric_value'} <= $last_play_numeric_value) {
+                           && $_->{'numeric_value'} < $last_act_numeric_value) {
+
+                            $play->{'to'} = [];
+                        }
+                        # can't play a known worse card than possible if we have any hidden cards
+                        elsif($_->{'status'} ne 'hidden'
+                           && !$has_any_better_than_played_card
+                           && $has_any_hidden_card) {
 
                             $play->{'to'} = [];
                         }
@@ -318,7 +344,7 @@ package App::GameMania::Game::Finne {
                             $play->{'to'} = ['pile'];
                         }
                         $plays->{'pyramid'}[ $_->{'row_index'} ][ $_->{'card_index'} ] = $play;
-                    } @$own_pyramid_playable_cards
+                    } @$own_pyramid_playable_cards;
                     #grep {
                     #    $_->{'numeric_value'} >= $last_play_numeric_value
                     #    ||
@@ -422,6 +448,40 @@ package App::GameMania::Game::Finne {
             }
         }
         return $playable_pyramid_cards;
+    }
+
+    sub count_current_acts_on_pile($self) {
+        my $counter = 0;
+
+        ACT:
+        for my $act (reverse $self->all_acts) {
+            last ACT if $act->origin eq 'pile';
+            next ACT if $act->destination ne 'pile';
+            ++$counter;
+        }
+        return $counter;
+    }
+
+    sub last_pile_act($self) {
+        ACT:
+        for my $act (reverse $self->all_acts) {
+            last ACT if $act->origin eq 'pile';
+            return $act if $act->destination eq 'pile';
+        }
+        return;
+    }
+    sub last_significant_act($self) {
+        ACT:
+        for my $act (reverse $self->all_acts) {
+            return $act if jany($act->origin, $act->destination) eq 'pile';
+        }
+        return;
+    }
+    sub player_last_act($self, $signature) {
+
+        my @acts = $self->filter_acts(sub { $_->signature eq $signature });
+        return if !scalar @acts;
+        return $acts[-1];
     }
 
     sub send($self, @args) {

@@ -37,6 +37,7 @@ package App::GameMania {
         $self->secrets(['asgsdgdrgrstfasdfasf']);
         $self->defaults(layout => 'default');
         $self->plugin('UnicodeNormalize');
+        $self->plugin('Config');
         $self->plugin(BootstrapHelpers => {
             icons => {
                 class => 'glyphicon',
@@ -61,17 +62,17 @@ package App::GameMania {
 
     sub setup_directories($self) {
 
-        # add our template directory
-        if(path(qw/share templates/)->exists) {
-            $self->renderer->paths([path(qw/share templates/)->realpath]);
-        }
-        else {
-            my $template_dir = path(dist_dir('App-PongMania'))->child(qw/templates/);
-
-            if($template_dir->is_dir) {
-                $self->renderer->paths([$template_dir->realpath]);
-            }
-        }
+#        # add our template directory
+#        if(path(qw/share templates/)->exists) {
+#            $self->renderer->paths([path(qw/share templates/)->realpath]);
+#        }
+#        else {
+#            my $template_dir = path(dist_dir('App-PongMania'))->child(qw/templates/);
+#
+#            if($template_dir->is_dir) {
+#                $self->renderer->paths([$template_dir->realpath]);
+#            }
+#        }
 
         # add static directory
         if(path(qw/share public/)->exists) {
