@@ -99,12 +99,12 @@ package App::GameMania::Game::Finne {
     # deal cards when both players have joined
     after add_player => sub ($self, @args) {
         if($self->count_players == 2) {
-            DIRECTLYONDISCARDED:
-            for my $discarded (1..20) {
-                my $card = $self->stack->remove_card;
-                $card->status('hidden');
-                $self->discarded->add_card($card);
-            }
+          #  DIRECTLYONDISCARDED:
+          #  for my $discarded (1..20) {
+          #      my $card = $self->stack->remove_card;
+          #      $card->status('hidden');
+          #      $self->discarded->add_card($card);
+          #  }
 
             ROW:            
             for my $row (0..4) {
@@ -122,7 +122,7 @@ package App::GameMania::Game::Finne {
                 }
             }
             CARDS_ON_HAND:
-            for (1..1) {
+            for (1..3) {
 
                 PLAYER:
                 for my $player ($self->all_players) {
@@ -282,6 +282,9 @@ package App::GameMania::Game::Finne {
                         }
                         $plays->{'pyramid'}[ $_->{'row_index'} ][ $_->{'card_index'} ] = $play;
                     } @$own_pyramid_playable_cards;
+                }
+                else {
+
                 }
             }
             else {
